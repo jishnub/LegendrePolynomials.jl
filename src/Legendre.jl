@@ -44,7 +44,7 @@ end
 
 # Convenience functions
 
-Pl(x;ℓmax) = Pl_derivatives(x,ℓmax,0)
+Pl(x;ℓmax) = Pl_derivatives(x,ℓmax,0)[:,0]
 Pl_dPl(x;ℓmax) = Pl_derivatives(x,ℓmax,1)
 Pl_dPl_d2Pl(x;ℓmax) = Pl_derivatives(x,ℓmax,2)
 
