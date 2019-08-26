@@ -1,170 +1,314 @@
 module Legendre
 using HyperDualNumbers,OffsetArrays
 
-export Pl,Pl!,Pl_dPl,Pl_dPl!, Pl_dPl_d2Pl, Pl_dPl_d2Pl!
-export dPl,d2Pl
-export Plm,Plm_cosθ,Plm!,Plm_cosθ!
-export Ylm,Ylm!
-##########################################################################################
-# Legendre Polynomians and derivatives up to order 2
+export Pl,Pl!,
+dPl,dPl!,
+d2Pl,d2Pl!,
+Pl_dPl,Pl_dPl!,
+Pl_d2Pl,Pl_d2Pl!,
+dPl_d2Pl,dPl_d2Pl!,
+Pl_dPl_d2Pl, Pl_dPl_d2Pl!
 
-function Pl_hyperdual(x,ℓmax)
-	arr = OffsetArray{Hyper{Float64}}(undef,0:ℓmax)
-	Pl_hyperdual!(arr,x,ℓmax)
+##########################################################################################
+# Legendre Polynomials and derivatives up to order 2
+
+function Pl_hyperdual(x::Real,lmax::Integer)
+	arr = OffsetArray{Hyper{Float64}}(undef,0:lmax)
+	Pl_hyperdual!(arr,x,lmax)
 	return arr
 end
 
-function Pl_hyperdual!(arr,x,ℓmax=axes(arr,1)[end])
+function Pl_hyperdual!(arr::OffsetArray,x::Real,lmax::Integer=maximum(axes(arr,1)))
+	
+	# Check if x is within limits
+	abs(x) > 1 && throw(DomainError(x,
+		"Legendre Polynomials are defined for arguments lying in -1 ⩽ x ⩽ 1"))
+
 	hd2 = hyper(x,1.0,1.0,0.0)
-	if (ℓmax≥0) 
+	if (lmax≥0) 
 		arr[0] = hyper(1)
 	end
-	if (ℓmax≥1) 
+	if (lmax≥1) 
 		arr[1] = hd2
 	end
-	for ℓ in 2:ℓmax
+	for ℓ in 2:lmax
 		arr[ℓ] = (2*(ℓ-1)+1)/ℓ * hd2 * arr[ℓ-1] - (ℓ-1)/ℓ * arr[ℓ-2]
 	end
+	arr
 end
 
-function Pl_derivatives!(arr,x,ℓmax=axes(arr,1)[end],deriv=axes(arr,2)[end])
-	arr_hyperdual = Pl_hyperdual(x,ℓmax)
+function Pl_derivatives!(arr::OffsetVector,x::Real,
+	lmax::Integer=maximum(axes(arr,1)),deriv=0)
+
+	# Only compute Pl
+	arr_hyperdual = view(Pl_hyperdual(x,lmax),0:lmax)
+
+	@inbounds @. arr[0:lmax] = realpart(arr_hyperdual)
+	arr
+end
+
+function Pl_derivatives!(arr::OffsetArray{T,2},x::Real,
+	lmax::Integer=maximum(axes(arr,1)),
+	deriv::Integer=maximum(axes(arr,2))) where {T<:Real}
+
+	arr_hyperdual = view(Pl_hyperdual(x,lmax),0:lmax)
 	
-	for (d_order,f) in zip(0:deriv,(realpart,eps1,eps1eps2))
-		arr[0:ℓmax,d_order] .= f.(parent(arr_hyperdual[0:ℓmax]))
+	@inbounds for (d_order,f) in zip(0:deriv,(realpart,eps1,eps1eps2))
+		@. arr[0:lmax,d_order] = f(arr_hyperdual)
 	end
-
+	arr
 end
 
-function Pl_derivatives(x,ℓmax,deriv=0)
-	arr = OffsetArray{Float64}(undef,0:ℓmax,0:deriv)
-	Pl_derivatives!(arr,x,ℓmax,deriv)
-	return arr
+function Pl_derivatives(x::Real,lmax::Integer,deriv::Integer=0)
+	arr = zeros(0:lmax,0:deriv)
+	Pl_derivatives!(arr,x,lmax,deriv)
+	arr
 end
 
 # Convenience functions
 
-Pl(x;ℓmax) = Pl_derivatives(x,ℓmax,0)[:,0]
-Pl_dPl(x;ℓmax) = Pl_derivatives(x,ℓmax,1)
-Pl_dPl_d2Pl(x;ℓmax) = Pl_derivatives(x,ℓmax,2)
+"""
+	Pl(x;lmax)
 
-Pl!(arr,x;ℓmax=axes(arr,1)[end]) = Pl_derivatives!(arr,x,ℓmax,0)
-Pl_dPl!(arr,x;ℓmax=axes(arr,1)[end]) = Pl_derivatives!(arr,x,ℓmax,1)
-Pl_dPl_d2Pl!(arr,x;ℓmax=axes(arr,1)[end]) = Pl_derivatives!(arr,x,ℓmax,2)
+	Computes the Legendre Polynomials Pl(x) for the argument x and l=0:lmax
+	Returns an OffsetArray P[0:lmax], where P[l] = Pl(x)
+"""
+Pl(x::Real;lmax::Integer) = Pl_derivatives(x,lmax,0)[:,0]
 
-dPl(x;ℓmax) = Pl_derivatives(x,ℓmax,1)[:,1]
-d2Pl(x;ℓmax) = Pl_derivatives(x,ℓmax,2)[:,2]
+"""
+	dPl(x;lmax)
 
-############################################################################################################
-############################################################################################################
+	Computes the derivatives of Legendre Polynomials dₓPl(x)
+	for the argument x and l=0:lmax
+	Returns an OffsetArray dP[0:lmax], where dP[l] = dₓPl(x)
+"""
+dPl(x::Real;lmax::Integer) = Pl_derivatives(x,lmax,1)[:,1]
 
-# Associated Legendre for -2 ≤ m ≤ 2
 
-############################################################################################################
-############################################################################################################
+"""
+	d2Pl(x;lmax)
 
-function Plm!(arr,x;ℓmax=axes(arr,1)[end])
-	dn_Pl = OffsetArray{Float64}(undef,0:ℓmax,0:2)
-	Pl_derivatives!(dn_Pl,x,ℓmax,2)
+	Computes the second derivatives of Legendre Polynomials dₓ²Pl(x)
+	for the argument x and l=0:lmax
+	Returns an OffsetArray d2P[0:lmax], where d2P[l] = dₓ²Pl(x)
+"""
+d2Pl(x::Real;lmax::Integer) = Pl_derivatives(x,lmax,2)[:,2]
 
-	prefactor = zeros(2)
+"""
+	Pl_dPl(x;lmax)
 
-	for ℓ in 0:ℓmax
-		
-		prefactor[1] = 1/((ℓ+1)*ℓ)
-		prefactor[2] = 1/((ℓ+2)*(ℓ+1)*ℓ*(ℓ-1))
-
-		arr[ℓ,0] = dn_Pl[ℓ,0]
-
-		for m in 1:min(2,ℓ)
-			
-			arr[ℓ,m] = (-1)^m * (1-x^2)^(m/2) * dn_Pl[ℓ,m]
-
-			arr[ℓ,-m] = (-1)^m * prefactor[m] * arr[ℓ,m]
-		end
-
-		for m in -2:-(ℓ+1)
-			arr[ℓ,m] = 0.
-		end
-
-		for m in (ℓ+1):2
-			arr[ℓ,m] = 0.
-		end
-		
-	end
+	Computes the the Legendre Polynomials Pl(x) and their derivatives dₓPl(x)
+	for the argument x and l=0:lmax
+	Returns OffsetArrays P[0:lmax] and dP[0:lmax], 
+	where P[l] = Pl(x) and dP[l] = dₓPl(x)
+"""
+function Pl_dPl(x::Real;lmax::Integer)
+	P = Pl_derivatives(x,lmax,1)
+	P[:,0],P[:,1]
 end
 
-function Plm_cosθ!(arr,θ;ℓmax=axes(arr,1)[end])
-	dn_Pl = OffsetArray{Float64}(undef,0:ℓmax,0:2)
-	Pl_derivatives!(dn_Pl,cos(θ),ℓmax,2)
+"""
+	Pl_dPl_d2Pl(x;lmax)
 
-	prefactor = zeros(2)
-
-	for ℓ in 0:ℓmax
-		
-		prefactor[1] = 1/((ℓ+1)*ℓ)
-		prefactor[2] = 1/((ℓ+2)*(ℓ+1)*ℓ*(ℓ-1))
-
-		arr[ℓ,0] = dn_Pl[ℓ,0]
-
-		for m in 1:min(2,ℓ)
-			
-			arr[ℓ,m] = (-1)^m * abs(sin(θ))^m * dn_Pl[ℓ,m]
-
-			arr[ℓ,-m] = (-1)^m * prefactor[m] * arr[ℓ,m]
-		end
-
-		for m in -2:-(ℓ+1)
-			arr[ℓ,m] = 0.
-		end
-
-		for m in (ℓ+1):2
-			arr[ℓ,m] = 0.
-		end
-		
-	end
+	Computes the the Legendre Polynomials Pl(x) and their first derivatives dPl(x)
+	and second derivatives dₓ²Pl(x) for the argument x and l=0:lmax
+	Returns OffsetArrays P[0:lmax], dP[0:lmax] and d2P[0:lmax],
+	where P[l] = Pl(x), dP[l] = dₓPl(x) and d2P[l] = dₓ²Pl(x)
+"""
+function Pl_dPl_d2Pl(x::Real;lmax::Integer)
+	P = Pl_derivatives(x,lmax,2)
+	P[:,0],P[:,1],P[:,2]
 end
 
-function Plm(x;ℓmax)
-	arr = OffsetArray{Float64}(undef,0:ℓmax,-2:2)
-	Plm!(arr,x,ℓmax=ℓmax)
-	return arr
+"""
+	dPl_d2Pl(x;lmax)
+
+	Computes the the first and second derivatives of Legendre Polynomials
+	dPl(x) and dₓ²Pl(x) for the argument x and l=0:lmax
+
+	Returns OffsetArrays dP[0:lmax] and d2P[0:lmax],
+	where dP[l] = dₓPl(x) and d2P[l] = dₓ²Pl(x)
+"""
+function dPl_d2Pl(x::Real;lmax::Integer)
+	P = Pl_derivatives(x,lmax,2)
+	P[:,1],P[:,2]
 end
 
-function Plm_cosθ(θ;ℓmax)
-	arr = OffsetArray{Float64}(undef,0:ℓmax,-2:2)
-	Plm_cosθ!(arr,θ,ℓmax=ℓmax)
-	return arr
+"""
+	Pl_d2Pl(x;lmax)
+
+	Computes the the Legendre Polynomials Pl(x) and their second derivatives dₓ²Pl(x) 
+	for the argument x and l=0:lmax
+
+	Returns OffsetArrays P[0:lmax] and d2P[0:lmax],
+	where P[l] = Pl(x) and d2P[l] = dₓ²Pl(x)
+"""
+function Pl_d2Pl(x::Real;lmax::Integer)
+	P = Pl_derivatives(x,lmax,2)
+	P[:,0],P[:,2]
 end
 
-############################################################################################################
-############################################################################################################
+"""
+	Pl!(arr,x;[lmax])
 
-# Spherical Harmonics for -2 ≤ m ≤ 2
+	Computes the Legendre Polynomials Pl(x) for the argument x and l=0:lmax,
+	and saves it in the OffsetArray arr
 
-############################################################################################################
-############################################################################################################
+	All dimensions of arr should have indices starting from 0
+	The axes of arr should be (0:l,0:n) where l ⫺ lmax and n ⫺ 0
 
-function SHnorm(ℓ,m)
-	m==0 && return √((2ℓ+1)/4π)
-	m==1 && return √((2ℓ+1)/4π/(ℓ*(ℓ+1)))
-	m==2 && return √((2ℓ+1)/4π/((ℓ-1)*ℓ*(ℓ+1)*(ℓ+2)))
-	m==-1 && return √((2ℓ+1)/4π*(ℓ*(ℓ+1)))
-	m==2 && return √((2ℓ+1)/4π*((ℓ-1)*ℓ*(ℓ+1)*(ℓ+2)))
+	At output, arr[l,0] = Pl(x)
+
+	The optional keyword argument lmax can specify the range of l's to compute.
+	It defaults to lmax = maximum(axes(arr,1))
+"""
+Pl!(arr::OffsetArray,x::Real;lmax::Integer=maximum(axes(arr,1))) = 
+	Pl_derivatives!(arr,x,lmax,0)
+
+"""
+	Pl_dPl!(arr,x;[lmax])
+
+	Computes the Legendre Polynomials Pl(x) and their derivatives dₓPl(x)
+	for the argument x and l=0:lmax, and saves them in the OffsetArray arr
+
+	All dimensions of arr should have indices starting from 0 
+	The axes of arr should be (0:l,0:n) where l ⫺ lmax and n ⫺ 1
+
+	At output, arr[l,0] = Pl(x) and arr[l,1] = dₓPl(x)
+
+	The optional keyword argument lmax can specify the range of l's to compute.
+	It defaults to lmax = maximum(axes(arr,1))
+"""
+Pl_dPl!(arr::OffsetArray,x::Real;lmax::Integer=maximum(axes(arr,1))) = 
+	Pl_derivatives!(arr,x,lmax,min(1,maximum(axes(arr,2))))
+
+"""
+	dPl!(arr,x;[lmax])
+
+	Computes the first derivatives of Legendre Polynomials dₓPl(x)
+	for the argument x and l=0:lmax, and saves them in the OffsetArray arr
+
+	The first dimension of arr should be 0:l, where l ⫺ lmax
+	The second dimension -- if arr is 2D -- should contain the index 1
+
+	At output, arr[l] = dₓPl(x) if arr is a Vector
+	or arr[l,1] = dₓPl(x) if arr is a Matrix
+
+	The optional keyword argument lmax can specify the range of l's to compute.
+	It defaults to lmax = maximum(axes(arr,1))
+"""
+function dPl!(arr::OffsetVector,x::Real;lmax::Integer=maximum(axes(arr,1)))
+	P = zeros(axes(arr,1),0:1)
+	Pl_dPl_d2Pl!(P,x;lmax=lmax)
+	@inbounds @. arr[:] = P[:,1]
+	arr
 end
 
-function Ylm!(arr,θ,ϕ,ℓmax=axes(arr,1)[end])
-	Plm_cosθ!(arr,θ,ℓmax)
-	for m in -2:2, ℓ in abs(m):ℓmax
-		arr[ℓ,m] *= cis(m*ϕ)*SHnorm(ℓ,m)
-	end
+function dPl!(arr::OffsetArray{T,2},x::Real;
+	lmax::Integer=maximum(axes(arr,1))) where {T<:Real}
+	P = zeros(axes(arr,1),0:1)
+	Pl_dPl_d2Pl!(P,x;lmax=lmax)
+	@inbounds @. arr[:,1] = P[:,1]
+	arr
 end
 
-function Ylm(θ,ϕ,ℓmax)
-	arr = OffsetArray{ComplexF64}(undef,0:ℓmax,-2:2)
-	Ylm!(arr,θ,ϕ,ℓmax)
-	return arr
+"""
+	Pl_dPl_d2Pl!(arr,x;[lmax])
+	Computes the Legendre Polynomials Pl(x) and their first and second 
+	derivatives dₓPl(x) and dₓ²Pl(x), for the argument x and l=0:lmax, 
+	and saves them in the OffsetArray arr
+
+	All dimensions of arr should have indices starting from 0
+	The axes of arr should be (0:l,0:n) where l ⫺ lmax and n ⫺ 2
+
+	At output, arr[l,0] = Pl(x), arr[l,1] = dₓPl(x) and arr[l,2] = dₓ²Pl(x)
+
+	The optional keyword argument lmax can specify the range of l's to compute.
+	It defaults to lmax = maximum(axes(arr,1))
+"""
+Pl_dPl_d2Pl!(arr::OffsetArray,x::Real;lmax::Integer=maximum(axes(arr,1))) = 
+	Pl_derivatives!(arr,x,lmax,min(2,maximum(axes(arr,2))))
+
+"""
+	d2Pl!(arr,x;[lmax])
+
+	Computes the second derivatives of Legendre Polynomials dₓ²Pl(x)
+	for the argument x and l=0:lmax, and saves them in the OffsetArray arr
+
+	The first dimension of arr should be 0:l, where l ⫺ lmax
+	The second dimension -- if arr is 2D -- should contain the index 2
+
+	At output, arr[l] = dₓ²Pl(x) if arr is a Vector
+	or arr[l,2] = dₓ²Pl(x) if arr is a Matrix
+
+	The optional keyword argument lmax can specify the range of l's to compute.
+	It defaults to lmax = maximum(axes(arr,1))
+"""
+function d2Pl!(arr::OffsetVector,x::Real;lmax::Integer=maximum(axes(arr,1)))
+	P = zeros(axes(arr,1),0:2)
+	Pl_dPl_d2Pl!(P,x;lmax=lmax)
+	@. arr[:] = P[:,2]
+	arr
 end
 
+function d2Pl!(arr::OffsetArray{T,2},
+	x::Real;lmax::Integer=maximum(axes(arr,1))) where {T<:Real}
+	P = zeros(axes(arr,1),0:2)
+	Pl_dPl_d2Pl!(P,x;lmax=lmax)
+	@. arr[:,2] = P[:,2]
+	arr
+end
+
+"""
+	dPl_d2Pl!(arr,x;[lmax])
+	Computes the first and second derivatives dₓPl(x) and dₓ²Pl(x), 
+	for the argument x and l=0:lmax, 
+	and saves them in the OffsetArray arr
+
+	The first dimension of arr should be 0:l, where l ⫺ lmax
+	The second dimension should be (1:n) where n ⫺ 2
+
+	At output, arr[l,1] = dₓPl(x) and arr[l,2] = dₓ²Pl(x)
+
+	The optional keyword argument lmax can specify the range of l's to compute.
+	It defaults to lmax = maximum(axes(arr,1))
+"""
+function dPl_d2Pl!(arr::OffsetArray{T,2},x::Real;
+	lmax::Integer=maximum(axes(arr,1))) where {T<:Real}
+
+	P = zeros(axes(arr,1),0:2)
+	Pl_dPl_d2Pl!(P,x;lmax=lmax)
+
+	@. arr[:,1] = P[:,1]
+	@. arr[:,2] = P[:,2]
+	
+	arr
+end
+
+"""
+	Pl_d2Pl!(arr,x;[lmax])
+	Computes the first and second derivatives dₓPl(x) and dₓ²Pl(x), 
+	for the argument x and l=0:lmax, 
+	and saves them in the OffsetArray arr
+
+	The first dimension of arr should be 0:l, where l ⫺ lmax
+	The second dimension should be (0:n) where n ⫺ 2
+
+	At output, arr[l,0] = dₓPl(x) and arr[l,2] = dₓ²Pl(x)
+
+	The optional keyword argument lmax can specify the range of l's to compute.
+	It defaults to lmax = maximum(axes(arr,1))
+"""
+function Pl_d2Pl!(arr::OffsetArray{T,2},x::Real;
+	lmax::Integer=maximum(axes(arr,1))) where {T<:Real}
+
+	P = zeros(axes(arr,1),0:2)
+	Pl_dPl_d2Pl!(P,x;lmax=lmax)
+
+	@. arr[:,0] = P[:,0]
+	@. arr[:,2] = P[:,2]
+	
+	arr
+end
 
 end

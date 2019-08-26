@@ -1,3 +1,5 @@
+# This file is machine-generated - editing it directly is not advised
+
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
@@ -8,22 +10,22 @@ uuid = "9e28174c-4ba2-5203-b857-d8d62c4213ee"
 version = "0.8.10"
 
 [[BinaryProvider]]
-deps = ["Libdl", "Pkg", "SHA", "Test"]
-git-tree-sha1 = "055eb2690182ebc31087859c3dd8598371d3ef9e"
+deps = ["Libdl", "Logging", "SHA"]
+git-tree-sha1 = "c7361ce8a2129f20b0e05a89f7070820cfed6648"
 uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
-version = "0.5.3"
+version = "0.5.6"
 
 [[Calculus]]
 deps = ["Compat"]
-git-tree-sha1 = "f60954495a7afcee4136f78d1d60350abd37a409"
+git-tree-sha1 = "bd8bbd105ba583a42385bd6dc4a20dad8ab3dc11"
 uuid = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
-version = "0.4.1"
+version = "0.5.0"
 
 [[Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
-git-tree-sha1 = "ec61a16eed883ad0cfa002d7489b3ce6d039bb9a"
+git-tree-sha1 = "84aa74986c5b9b898b0d1acaf3258741ee64754f"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "1.4.0"
+version = "2.1.0"
 
 [[Dates]]
 deps = ["Printf"]
@@ -34,7 +36,7 @@ deps = ["Mmap"]
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[Distributed]]
-deps = ["LinearAlgebra", "Random", "Serialization", "Sockets"]
+deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[HyperDualNumbers]]
@@ -44,7 +46,7 @@ uuid = "50ceba7f-c3ee-5a84-a6e8-3ad40456ec97"
 version = "4.0.0"
 
 [[InteractiveUtils]]
-deps = ["LinearAlgebra", "Markdown"]
+deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[LibGit2]]
@@ -74,10 +76,9 @@ uuid = "77ba4419-2d1f-58cd-9bb1-8ffee604a2e3"
 version = "0.3.2"
 
 [[OffsetArrays]]
-deps = ["DelimitedFiles", "Test"]
-git-tree-sha1 = "f446248f2dfbc13039a0b90994dd25b059b01eab"
+git-tree-sha1 = "1af2f79c7eaac3e019a0de41ef63335ff26a0a57"
 uuid = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
-version = "0.9.0"
+version = "0.11.1"
 
 [[Pkg]]
 deps = ["Dates", "LibGit2", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
@@ -133,7 +134,7 @@ uuid = "30578b45-9adc-5946-b283-645ec420af67"
 version = "0.4.0"
 
 [[UUIDs]]
-deps = ["Random"]
+deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [[Unicode]]
