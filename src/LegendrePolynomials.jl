@@ -220,7 +220,7 @@ end
 	Computes the the first and second derivatives of Legendre Polynomials dPl(x) 
 	and dₓ²Pl(x) for the argument x and the degree l
 """
-function dPl_dPl(x::Real,l::Integer)
+function dPl_d2Pl(x::Real,l::Integer)
 	Ph = Pl_hyperdual(x,l)
 	eps1(Ph),eps1eps2(Ph)
 end
