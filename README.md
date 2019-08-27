@@ -1,4 +1,4 @@
-# Legendre.jl
+# LegendrePolynomials.jl
 
 [![Build Status](https://travis-ci.com/jishnub/LegendrePolynomials.jl.svg?branch=master)](https://travis-ci.com/jishnub/LegendrePolynomials.jl)
 
@@ -15,7 +15,7 @@ The package depends on `HyperDualNumbers` and `OffsetArrays`.
 To install the package, run 
 
 ```julia
-] add https://github.com/jishnub/Legendre.jl.git
+] add https://github.com/jishnub/LegendrePolynomials.jl.git
 using LegendrePolynomials
 ```
 
@@ -137,4 +137,4 @@ Note that the column number that will be populated depends on the order of the d
 
 # License
 
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/jishnub/Legendre.jl/blob/master/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/jishnub/LegendrePolynomials.jl/blob/master/LICENSE) file for details.
