@@ -106,7 +106,7 @@ julia> Pl_dPl_d2Pl(0.5,lmax=3)
 
 This returns a 3-tuple of `OffsetArrays` `Pl`, `dPl` and `d2Pl`. 
 
-There are non-allocating functions as well that can be called using a pre-allocated array. As as example
+There are non-allocating functions as well that can be called using a pre-allocated array. As an example
 
 ```julia
 julia> P=zeros(0:3,0:2)
