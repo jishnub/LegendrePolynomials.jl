@@ -16,7 +16,7 @@ To install the package, run
 
 ```julia
 ] add https://github.com/jishnub/Legendre.jl.git
-using Legendre
+using LegendrePolynomials
 ```
 
 ## Using
