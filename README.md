@@ -1,6 +1,6 @@
 # Legendre.jl
 
-[![Build Status](https://travis-ci.com/jishnub/Legendre.jl.svg?branch=master)](https://travis-ci.com/jishnub/Legendre.jl)
+[![Build Status](https://travis-ci.com/jishnub/LegendrePolynomials.jl.svg?branch=master)](https://travis-ci.com/jishnub/LegendrePolynomials.jl)
 
 Legendre polynomials and their derivatives using automatic differentiation
 
@@ -68,7 +68,7 @@ julia> Pl_dPl_d2Pl(0.5,5)
 
 ### All degrees up to a cutoff
 
-The second class of methods return all the polynomials up to a cutoff degree `lmax`. They are returned as `OffsetArrays` that have `0`-based indexing, keeping in mind that the polynomials start from `l=0`.
+The second class of methods return all the polynomials up to a cutoff degree `lmax`. They are returned as `OffsetArrays` that have 0-based indexing, keeping in mind that the polynomials start from `l=0`.
 
 The polynomials and their derivatives can be computed in general by calling the function `P(x;lmax)`, where `P` has to be chosen appropriately as necessary. The keyword argument has to be specified in the allocating functions, whereas it can be inferred from the array in the non-allocating versions.
 
@@ -104,7 +104,7 @@ julia> Pl_dPl_d2Pl(0.5,lmax=3)
 ([1.0, 0.5, -0.125, -0.4375], [0.0, 1.0, 1.5, 0.3750000000000001], [0.0, 0.0, 3.0, 7.5])
 ```
 
-This returns a 3-tuple of `OffsetArrays` Pl, dPl and d2Pl. 
+This returns a 3-tuple of `OffsetArrays` `Pl`, `dPl` and `d2Pl`. 
 
 There are non-allocating functions as well that can be called using a pre-allocated array. As as example
 
@@ -133,7 +133,7 @@ julia> dPl!(P,0.5)
  0.0  0.375  0.0
 ```
 
-Note that the column number that will be populated depends on the order of the derivative, assuming `0`-based indexing. Therefore `Pl!` will fill column `0`, `dPl!` will fill columnn `1` and `d2Pl!` will fill column 2. Combinations of these will fill multiple columns as expected.
+Note that the column number that will be populated depends on the order of the derivative, assuming 0-based indexing. Therefore `Pl!` will fill column 0, `dPl!` will fill columnn 1 and `d2Pl!` will fill column 2. Combinations of these will fill multiple columns as expected.
 
 # License
 

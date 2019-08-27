@@ -13,4 +13,4 @@ script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia --check-bounds=yes -e 'using Pkg; Pkg.instantiate(); if VERSION >= v"1.1" Pkg.build(; verbose = true) else Pkg.build() end; Pkg.test(coverage=true)'
 after_success:
-  - if [ $TRAVIS_JULIA_VERSION = "nightly" ]; then julia -e 'using Pkg; import Legendre; cd(joinpath(dirname(pathof(Legendre)),"..")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'; fi
+  - if [ $TRAVIS_JULIA_VERSION = "nightly" ]; then julia -e 'using Pkg; import LegendrePolynomials; cd(joinpath(dirname(pathof(LegendrePolynomials)),"..")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'; fi
