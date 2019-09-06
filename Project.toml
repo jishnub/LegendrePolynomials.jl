@@ -1,6 +1,6 @@
 name = "LegendrePolynomials"
 uuid = "3db4a2ba-fc88-11e8-3e01-49c72059a882"
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 HyperDualNumbers = "50ceba7f-c3ee-5a84-a6e8-3ad40456ec97"

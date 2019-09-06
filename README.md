@@ -15,8 +15,7 @@ The package depends on `HyperDualNumbers` and `OffsetArrays`.
 To install the package, run 
 
 ```julia
-] add https://github.com/jishnub/LegendrePolynomials.jl.git
-using LegendrePolynomials
+] add LegendrePolynomials
 ```
 
 ## Using
@@ -38,6 +37,19 @@ julia> Pl(0.5,10)
 julia> @btime Pl(0.5,1_000_000)
   13.022 ms (0 allocations: 0 bytes)
 -0.0006062610545162491
+```
+
+The accuracy can be increased by using Arbitrary Precision Arithmetic, through the use of 
+`BigInt` and `BigFloat`. This comes at the expense of performance though.
+
+```julia
+julia> @btime Pl(1/3,1_000)
+  11.135 μs (0 allocations: 0 bytes)
+0.01961873093750127
+
+julia> @btime Pl(big(1)/3,1_000)
+  1.751 ms (58965 allocations: 3.13 MiB)
+0.01961873093750094969323575593064773353450010511010742490834078609343359408691498
 ```
 
 The way to compute the derivatives is through `dPl(x,l)` and `d2Pl(x,l)`, for example
@@ -70,7 +82,7 @@ julia> Pl_dPl_d2Pl(0.5,5)
 
 The second class of methods return all the polynomials up to a cutoff degree `lmax`. They are returned as `OffsetArrays` that have 0-based indexing, keeping in mind that the polynomials start from `l=0`.
 
-The polynomials and their derivatives can be computed in general by calling the function `P(x;lmax)`, where `P` has to be chosen appropriately as necessary. The keyword argument has to be specified in the allocating functions, whereas it can be inferred from the array in the non-allocating versions.
+The polynomials and their derivatives can be computed in general by calling the function `P(x;lmax)`, where `P` has to be chosen appropriately as necessary. The keyword argument has to be specified in the allocating functions, whereas it may be inferred from the array in the non-allocating versions.
 
 An example of the allocating functions are
 

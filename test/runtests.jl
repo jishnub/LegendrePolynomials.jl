@@ -34,7 +34,7 @@ end
     @test P[5]≈1/8*(-420x + 1260x^3)
 end
 
-@testset "array and l" begin
+@testset "allmodes vs one" begin
     x = 2rand() - 1
     lmax = 10
     P,dP,d2P = Pl_dPl_d2Pl(x,lmax=lmax)
@@ -53,4 +53,35 @@ end
             @test d2P[l]==d2Pl(x,l)
         end
     end 
+end
+
+@testset "boundary" begin
+
+    lmax = 10
+    P1,dP1 = Pl_dPl(1,lmax=lmax)
+    Pm1,dPm1 = Pl_dPl(-1,lmax=lmax)
+
+    @testset "Pl" begin
+        for l in axes(P1,1)
+            @test P1[l] == 1
+        end
+        for l in axes(Pm1,1)
+            @test Pm1[l] == (-1)^l
+        end
+    end
+    @testset "dPl" begin
+        for l in axes(dP1,1)
+            @test dP1[l] == l*(l+1)/2
+        end
+        for l in axes(dPm1,1)
+            @test dPm1[l] == (-1)^(l+1) * l*(l+1)/2
+        end
+    end
+end
+
+@testset "Askey-Gasper" begin
+    x=0.5
+    for lmax=1:100:1_000
+        @test sum(Pl(x,lmax=lmax)) >= 0
+    end
 end
