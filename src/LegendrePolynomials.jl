@@ -69,7 +69,7 @@ function Pl_hyperdual(x::Real,l::Integer)
 	Pl	
 end
 
-function Pl_derivatives_allmodes!(arr::OffsetVector,x::Real,
+function Pl_derivatives_allmodes!(arr::AbstractVector{<:Real},x::Real,
 	lmax::Integer=maximum(axes(arr,1)),deriv=0)
 
 	# Only compute Pl
@@ -79,7 +79,7 @@ function Pl_derivatives_allmodes!(arr::OffsetVector,x::Real,
 	arr
 end
 
-function Pl_derivatives_allmodes!(arr::OffsetArray{<:Real,2},x::Real,
+function Pl_derivatives_allmodes!(arr::AbstractMatrix{<:Real},x::Real,
 	lmax::Integer=maximum(axes(arr,1)),
 	deriv::Integer=maximum(axes(arr,2)))
 
@@ -259,7 +259,7 @@ end
 	Pl!(arr,x;[lmax])
 
 Computes the Legendre Polynomials Pl(x) for the argument x and l=0:lmax,
-and saves it in the OffsetArray arr
+and saves it in the AbstractArray arr. Assumes that arr has 0-based indexing.
 
 All dimensions of arr should have indices starting from 0
 The axes of arr should be (0:l,0:n) where l ⫺ lmax and n ⫺ 0
@@ -269,14 +269,15 @@ At output, arr[l,0] = Pl(x)
 The optional keyword argument lmax can specify the range of l's to compute.
 It defaults to lmax = maximum(axes(arr,1))
 """
-Pl!(arr::OffsetArray{<:Real},x::Real;lmax::Integer=maximum(axes(arr,1))) = 
+Pl!(arr::AbstractVecOrMat{<:Real},x::Real;lmax::Integer=maximum(axes(arr,1))) = 
 	Pl_derivatives_allmodes!(arr,x,lmax,0)
 
 """
 	Pl_dPl!(arr,x;[lmax])
 
 Computes the Legendre Polynomials Pl(x) and their derivatives dₓPl(x)
-for the argument x and l=0:lmax, and saves them in the OffsetArray arr
+for the argument x and l=0:lmax, and saves them in the AbstractArray arr. 
+Assumes that arr has 0-based indexing.
 
 All dimensions of arr should have indices starting from 0 
 The axes of arr should be (0:l,0:n) where l ⫺ lmax and n ⫺ 1
@@ -286,14 +287,15 @@ At output, arr[l,0] = Pl(x) and arr[l,1] = dₓPl(x)
 The optional keyword argument lmax can specify the range of l's to compute.
 It defaults to lmax = maximum(axes(arr,1))
 """
-Pl_dPl!(arr::OffsetArray{<:Real,2},x::Real;lmax::Integer=maximum(axes(arr,1))) = 
+Pl_dPl!(arr::AbstractMatrix{<:Real},x::Real;lmax::Integer=maximum(axes(arr,1))) = 
 	Pl_derivatives_allmodes!(arr,x,lmax,min(1,maximum(axes(arr,2))))
 
 """
 	dPl!(arr,x;[lmax])
 
 Computes the first derivatives of Legendre Polynomials dₓPl(x)
-for the argument x and l=0:lmax, and saves them in the OffsetArray arr
+for the argument x and l=0:lmax, and saves them in the AbstractArray arr. 
+Assumes that arr has 0-based indexing.
 
 The first dimension of arr should be 0:l, where l ⫺ lmax
 The second dimension -- if arr is 2D -- should contain the index 1
@@ -304,14 +306,14 @@ or arr[l,1] = dₓPl(x) if arr is a Matrix
 The optional keyword argument lmax can specify the range of l's to compute.
 It defaults to lmax = maximum(axes(arr,1))
 """
-function dPl!(arr::OffsetVector{<:Real},x::Real;lmax::Integer=maximum(axes(arr,1)))
+function dPl!(arr::AbstractVector{<:Real},x::Real;lmax::Integer=maximum(axes(arr,1)))
 	P = zeros(axes(arr,1),0:1)
 	Pl_dPl_d2Pl!(P,x;lmax=lmax)
 	@inbounds @. arr[:] = P[:,1]
 	arr
 end
 
-function dPl!(arr::OffsetArray{<:Real,2},x::Real;
+function dPl!(arr::AbstractMatrix{<:Real},x::Real;
 	lmax::Integer=maximum(axes(arr,1)))
 	P = zeros(axes(arr,1),0:1)
 	Pl_dPl_d2Pl!(P,x;lmax=lmax)
@@ -324,7 +326,7 @@ end
 
 Computes the Legendre Polynomials Pl(x) and their first and second 
 derivatives dₓPl(x) and dₓ²Pl(x), for the argument x and l=0:lmax, 
-and saves them in the OffsetArray arr
+and saves them in the AbstractArray arr. Assumes that arr has 0-based indexing.
 
 All dimensions of arr should have indices starting from 0
 The axes of arr should be (0:l,0:n) where l ⫺ lmax and n ⫺ 2
@@ -334,14 +336,15 @@ At output, arr[l,0] = Pl(x), arr[l,1] = dₓPl(x) and arr[l,2] = dₓ²Pl(x)
 The optional keyword argument lmax can specify the range of l's to compute.
 It defaults to lmax = maximum(axes(arr,1))
 """
-Pl_dPl_d2Pl!(arr::OffsetArray{<:Real,2},x::Real;lmax::Integer=maximum(axes(arr,1))) = 
+Pl_dPl_d2Pl!(arr::AbstractMatrix{<:Real},x::Real;lmax::Integer=maximum(axes(arr,1))) = 
 	Pl_derivatives_allmodes!(arr,x,lmax,min(2,maximum(axes(arr,2))))
 
 """
 	d2Pl!(arr,x;[lmax])
 
 Computes the second derivatives of Legendre Polynomials dₓ²Pl(x)
-for the argument x and l=0:lmax, and saves them in the OffsetArray arr
+for the argument x and l=0:lmax, and saves them in the AbstractArray arr. 
+Assumes that arr has 0-based indexing.
 
 The first dimension of arr should be 0:l, where l ⫺ lmax
 The second dimension -- if arr is 2D -- should contain the index 2
@@ -352,14 +355,14 @@ or arr[l,2] = dₓ²Pl(x) if arr is a Matrix
 The optional keyword argument lmax can specify the range of l's to compute.
 It defaults to lmax = maximum(axes(arr,1))
 """
-function d2Pl!(arr::OffsetVector{<:Real},x::Real;lmax::Integer=maximum(axes(arr,1)))
+function d2Pl!(arr::AbstractVector{<:Real},x::Real;lmax::Integer=maximum(axes(arr,1)))
 	P = zeros(axes(arr,1),0:2)
 	Pl_dPl_d2Pl!(P,x;lmax=lmax)
 	@. arr[:] = P[:,2]
 	arr
 end
 
-function d2Pl!(arr::OffsetArray{<:Real,2},
+function d2Pl!(arr::AbstractMatrix{<:Real},
 	x::Real;lmax::Integer=maximum(axes(arr,1)))
 	P = zeros(axes(arr,1),0:2)
 	Pl_dPl_d2Pl!(P,x;lmax=lmax)
@@ -372,7 +375,7 @@ end
 
 Computes the first and second derivatives dₓPl(x) and dₓ²Pl(x), 
 for the argument x and l=0:lmax, 
-and saves them in the OffsetArray arr
+and saves them in the AbstractArray arr. Assumes that arr has 0-based indexing.
 
 The first dimension of arr should be 0:l, where l ⫺ lmax
 The second dimension should be (1:n) where n ⫺ 2
@@ -382,7 +385,7 @@ At output, arr[l,1] = dₓPl(x) and arr[l,2] = dₓ²Pl(x)
 The optional keyword argument lmax can specify the range of l's to compute.
 It defaults to lmax = maximum(axes(arr,1))
 """
-function dPl_d2Pl!(arr::OffsetArray{<:Real,2},x::Real;
+function dPl_d2Pl!(arr::AbstractMatrix{<:Real},x::Real;
 	lmax::Integer=maximum(axes(arr,1)))
 
 	P = zeros(axes(arr,1),0:2)
@@ -399,7 +402,7 @@ end
 
 Computes the first and second derivatives dₓPl(x) and dₓ²Pl(x), 
 for the argument x and l=0:lmax, 
-and saves them in the OffsetArray arr
+and saves them in the AbstractArray arr. Assumes that arr has 0-based indexing.
 
 The first dimension of arr should be 0:l, where l ⫺ lmax
 The second dimension should be (0:n) where n ⫺ 2
@@ -409,7 +412,7 @@ At output, arr[l,0] = dₓPl(x) and arr[l,2] = dₓ²Pl(x)
 The optional keyword argument lmax can specify the range of l's to compute.
 It defaults to lmax = maximum(axes(arr,1))
 """
-function Pl_d2Pl!(arr::OffsetArray{<:Real,2},x::Real;
+function Pl_d2Pl!(arr::AbstractMatrix{<:Real},x::Real;
 	lmax::Integer=maximum(axes(arr,1)))
 
 	P = zeros(axes(arr,1),0:2)
