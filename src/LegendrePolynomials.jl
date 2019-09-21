@@ -309,7 +309,7 @@ It defaults to lmax = maximum(axes(arr,1))
 function dPl!(arr::AbstractVector{<:Real},x::Real;lmax::Integer=maximum(axes(arr,1)))
 	P = zeros(axes(arr,1),0:1)
 	Pl_dPl_d2Pl!(P,x;lmax=lmax)
-	@inbounds @. arr[:] = P[:,1]
+	@views @. arr = P[:,1]
 	arr
 end
 
@@ -317,7 +317,7 @@ function dPl!(arr::AbstractMatrix{<:Real},x::Real;
 	lmax::Integer=maximum(axes(arr,1)))
 	P = zeros(axes(arr,1),0:1)
 	Pl_dPl_d2Pl!(P,x;lmax=lmax)
-	@inbounds @. arr[:,1] = P[:,1]
+	@views @. arr[:,1] = P[:,1]
 	arr
 end
 
@@ -358,7 +358,7 @@ It defaults to lmax = maximum(axes(arr,1))
 function d2Pl!(arr::AbstractVector{<:Real},x::Real;lmax::Integer=maximum(axes(arr,1)))
 	P = zeros(axes(arr,1),0:2)
 	Pl_dPl_d2Pl!(P,x;lmax=lmax)
-	@. arr[:] = P[:,2]
+	@views @. arr = P[:,2]
 	arr
 end
 
@@ -366,7 +366,7 @@ function d2Pl!(arr::AbstractMatrix{<:Real},
 	x::Real;lmax::Integer=maximum(axes(arr,1)))
 	P = zeros(axes(arr,1),0:2)
 	Pl_dPl_d2Pl!(P,x;lmax=lmax)
-	@. arr[:,2] = P[:,2]
+	@views @. arr[:,2] = P[:,2]
 	arr
 end
 
@@ -391,8 +391,7 @@ function dPl_d2Pl!(arr::AbstractMatrix{<:Real},x::Real;
 	P = zeros(axes(arr,1),0:2)
 	Pl_dPl_d2Pl!(P,x;lmax=lmax)
 
-	@. arr[:,1] = P[:,1]
-	@. arr[:,2] = P[:,2]
+	@views @. arr[:,1:2] = P[:,1:2]
 	
 	arr
 end
@@ -418,8 +417,8 @@ function Pl_d2Pl!(arr::AbstractMatrix{<:Real},x::Real;
 	P = zeros(axes(arr,1),0:2)
 	Pl_dPl_d2Pl!(P,x;lmax=lmax)
 
-	@. arr[:,0] = P[:,0]
-	@. arr[:,2] = P[:,2]
+	@views @. arr[:,0] = P[:,0]
+	@views @. arr[:,2] = P[:,2]
 	
 	arr
 end

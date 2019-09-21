@@ -145,7 +145,7 @@ julia> dPl!(P,0.5)
  0.0  0.375  0.0
 ```
 
-Note that the column number that will be populated depends on the order of the derivative, assuming 0-based indexing. Therefore `Pl!` will fill column 0, `dPl!` will fill columnn 1 and `d2Pl!` will fill column 2. Combinations of these will fill multiple columns as expected.
+Note that the column number that will be populated depends on the order of the derivative, assuming 0-based indexing. Therefore `Pl!` will fill column 0, `dPl!` will fill column 1 and `d2Pl!` will fill column 2. Combinations of these will fill multiple columns as expected.
 
 # License
 
