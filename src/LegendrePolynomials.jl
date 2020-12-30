@@ -27,7 +27,7 @@ end
 
 function Pl_hyperdual_allmodes(x::Real, lmax::Integer)
 	T = typeof(float(x))
-	arr = `OffsetArray`{Hyper{T}}(undef,0:lmax)
+	arr = OffsetArray{Hyper{T}}(undef, 0:lmax)
 	Pl_hyperdual_allmodes!(arr,x,lmax)
 	return arr
 end

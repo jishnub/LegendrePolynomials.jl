@@ -1,6 +1,8 @@
 # LegendrePolynomials.jl
 
-[![Build Status](https://travis-ci.com/jishnub/LegendrePolynomials.jl.svg?branch=master)](https://travis-ci.com/jishnub/LegendrePolynomials.jl)
+![CI](https://github.com/jishnub/LegendrePolynomials.jl/workflows/CI/badge.svg?branch=master)
+[![stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://jishnub.github.io/LegendrePolynomials.jl/stable)
+[![dev](https://img.shields.io/badge/docs-latest-blue.svg)](https://jishnub.github.io/LegendrePolynomials.jl/dev)
 
 Legendre polynomials and their derivatives using automatic differentiation
 
