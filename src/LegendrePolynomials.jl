@@ -59,7 +59,7 @@ function Pl_hyperdual(x::Real, l::Integer)
 		"Legendre Polynomials are defined for arguments lying in -1 ⩽ x ⩽ 1"))
 
 	hd1 = hyper(one(x))
-	hdx = hyper(x,one(x),one(x),zero(x))
+	hdx = hyper(x, one(x), one(x), zero(x))
 
 	if l==0
 		return hd1
@@ -82,7 +82,7 @@ function Pl_derivatives_allmodes!(arr::AbstractVector{<:Real}, x::Real,
 	lmax::Integer = maximum(axes(arr,1)), deriv=0)
 
 	# Only compute Pl
-	arr_hyperdual = view(Pl_hyperdual_allmodes(x,lmax),0:lmax)
+	arr_hyperdual = view(Pl_hyperdual_allmodes(x, lmax), 0:lmax)
 
 	@inbounds @. arr[0:lmax] = realpart(arr_hyperdual)
 	arr
@@ -92,10 +92,10 @@ function Pl_derivatives_allmodes!(arr::AbstractMatrix{<:Real}, x::Real,
 	lmax::Integer = maximum(axes(arr,1)),
 	deriv::Integer = maximum(axes(arr,2)))
 
-	arr_hyperdual = view(Pl_hyperdual_allmodes(x,lmax),0:lmax)
+	arr_hyperdual = view(Pl_hyperdual_allmodes(x, lmax), 0:lmax)
 	
-	@inbounds for (d_order,f) in zip(0:deriv,(realpart,eps1,eps1eps2))
-		@. arr[0:lmax,d_order] = f(arr_hyperdual)
+	@inbounds for (d_order,f) in zip(0:deriv, (realpart,eps1,eps1eps2))
+		@. arr[0:lmax, d_order] = f(arr_hyperdual)
 	end
 	arr
 end
@@ -114,7 +114,7 @@ end
 Computes the Legendre Polynomials ``P_l(x)`` for the argument `x` and `l = 0:lmax`.
 Returns an `OffsetArray` `P` with indices `0:lmax`, where `P[l] == Pl(x,l)`
 """
-Pl(x::Real; lmax::Integer) = Pl_derivatives_allmodes(x,lmax,0)[:,0]
+Pl(x::Real; lmax::Integer) = Pl_derivatives_allmodes(x, lmax, 0)[:,0]
 
 """
 	Pl(x::Real, l::Integer)
@@ -133,7 +133,7 @@ Computes the first derivatives of Legendre Polynomials ``d_xP_l(x)`` for the
 argument `x` and `l = 0:lmax`.
 Returns an `OffsetArray` `dP` with indices `0:lmax`, where `dP[l] = dPl(x,l)`
 """
-dPl(x::Real; lmax::Integer) = Pl_derivatives_allmodes(x,lmax,1)[:,1]
+dPl(x::Real; lmax::Integer) = Pl_derivatives_allmodes(x, lmax, 1)[:,1]
 
 """
 	dPl(x::Real, l::Integer)
@@ -175,7 +175,7 @@ Returns `OffsetArray`s `P` and `dP` with indices `0:lmax`, where `P[l] == Pl(x,l
 `dP[l] == dPl(x,l)`.
 """
 function Pl_dPl(x::Real; lmax::Integer)
-	P = Pl_derivatives_allmodes(x,lmax,1)
+	P = Pl_derivatives_allmodes(x, lmax, 1)
 	P[:,0], P[:,1]
 end
 
@@ -235,7 +235,7 @@ Computes the the first and second derivatives of Legendre Polynomials ``d_xP_l(x
 and ``d_x^2P_l(x)`` for the argument `x` and the degree `l`
 """
 function dPl_d2Pl(x::Real, l::Integer)
-	Ph = Pl_hyperdual(x,l)
+	Ph = Pl_hyperdual(x, l)
 	eps1(Ph), eps1eps2(Ph)
 end
 
@@ -279,7 +279,7 @@ The optional keyword argument `lmax` may specify the range of ``l``'s to compute
 It defaults to `lmax = maximum(axes(arr,1))`
 """
 Pl!(arr::AbstractVecOrMat{<:Real}, x::Real; lmax::Integer = maximum(axes(arr,1))) = 
-	Pl_derivatives_allmodes!(arr,x,lmax,0)
+	Pl_derivatives_allmodes!(arr, x, lmax, 0)
 
 """
 	Pl_dPl!(arr, x; [lmax = maximum(axes(arr,1))])
@@ -316,7 +316,7 @@ The optional keyword argument `lmax` may specify the range of ``l``'s to compute
 It defaults to `lmax = maximum(axes(arr,1))`
 """
 function dPl!(arr::AbstractVector{<:Real}, x::Real; lmax::Integer = maximum(axes(arr,1)))
-	P = zeros(axes(arr,1),0:1)
+	P = zeros(axes(arr,1), 0:1)
 	Pl_dPl_d2Pl!(P, x; lmax = lmax)
 	@views @. arr = P[:,1]
 	arr
@@ -324,6 +324,7 @@ end
 
 function dPl!(arr::AbstractMatrix{<:Real}, x::Real;
 	lmax::Integer = maximum(axes(arr,1)))
+
 	P = zeros(axes(arr,1),0:1)
 	Pl_dPl_d2Pl!(P, x; lmax = lmax)
 	@views @. arr[:,1] = P[:,1]
