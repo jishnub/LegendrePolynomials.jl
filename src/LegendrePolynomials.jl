@@ -31,6 +31,8 @@ If `lmax` is specified then only the values of ``P_l(x)`` from `0` to `lmax` are
 
 # Examples
 ```jldoctest
+julia> import LegendrePolynomials: LegendrePolynomialIterator
+
 julia> iter = LegendrePolynomialIterator(0.5, 4);
 
 julia> collect(iter)

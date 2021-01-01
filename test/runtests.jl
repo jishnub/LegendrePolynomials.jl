@@ -3,7 +3,24 @@ using LegendrePolynomials
 using OffsetArrays
 using HyperDualNumbers
 
+import LegendrePolynomials: LegendrePolynomialIterator
+
 tohyper(x) = Hyper(x, one(x), one(x), zero(x))
+
+@testset "LegendrePolynomialIterator" begin
+    lmax = 5
+    iter = LegendrePolynomialIterator(0.5, lmax);
+    @test length(iter) == lmax + 1
+    @test eltype(iter) == Float64
+    @test size(iter) == (lmax+1,)
+    @test axes(iter) == (0:lmax,)
+    @test keys(iter) == 0:lmax
+
+    iter2 = copy(iter)
+    @test typeof(iter2) == typeof(iter)
+    @test iter2.x == iter.x 
+    @test iter2.lmax == iter.lmax
+end
 
 @testset "Pl" begin
 	x = 2rand() - 1 

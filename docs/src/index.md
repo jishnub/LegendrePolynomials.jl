@@ -9,7 +9,9 @@ end
 
 Compute [Legendre polynomials](https://en.wikipedia.org/wiki/Legendre_polynomials) using a 3-term recursion relation (Bonnet’s recursion formula).
 
-``P_\ell(x) = \left((2\ell-1) x P_{\ell-1}(x) - (\ell-1)P_{\ell - 2}(x)\right)/\ell``
+```math
+P_\ell(x) = \left((2\ell-1) x P_{\ell-1}(x) - (\ell-1)P_{\ell - 2}(x)\right)/\ell
+```
 
 Currently this package evaluates the standard polynomials that satisfy ``P_\ell(1) = 1``. These are normalized as 
 
