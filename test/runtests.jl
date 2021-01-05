@@ -2,6 +2,11 @@ using Test
 using LegendrePolynomials
 using OffsetArrays
 using HyperDualNumbers
+using Aqua
+
+@testset "Project quality assurance" begin
+    Aqua.test_all(LegendrePolynomials)
+end
 
 import LegendrePolynomials: LegendrePolynomialIterator
 

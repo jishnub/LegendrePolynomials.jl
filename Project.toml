@@ -1,17 +1,20 @@
 name = "LegendrePolynomials"
 uuid = "3db4a2ba-fc88-11e8-3e01-49c72059a882"
-version = "0.3"
+version = "0.3.1"
 
 [deps]
 OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
 
 [compat]
+Aqua = "0.5"
+HyperDualNumbers = "4"
 OffsetArrays = "0.11, 1"
 julia = "1"
 
 [extras]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 HyperDualNumbers = "50ceba7f-c3ee-5a84-a6e8-3ad40456ec97"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["HyperDualNumbers", "Test"]
+test = ["Aqua", "HyperDualNumbers", "Test"]

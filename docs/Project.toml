@@ -1,8 +1,10 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+DualNumbers = "fa6b7ba4-c1ee-5f82-b5fc-ecf0adba8f74"
 HyperDualNumbers = "50ceba7f-c3ee-5a84-a6e8-3ad40456ec97"
 LegendrePolynomials = "3db4a2ba-fc88-11e8-3e01-49c72059a882"
 
 [compat]
 Documenter = "0.26"
+DualNumbers = "0.6"
 HyperDualNumbers = "4"

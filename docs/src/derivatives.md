@@ -85,3 +85,50 @@ Pl_dPl_d2Pl (generic function with 1 method)
 julia> Pl_dPl_d2Pl(0.5, lmax = 3)
 ([1.0, 0.5, -0.125, -0.4375], [0.0, 1.0, 1.5, 0.375], [0.0, 0.0, 3.0, 7.5])
 ```
+
+# Analytical approach for higher derivatives
+
+Legendre polynomials satisfy the differential equation 
+
+```math
+\frac{d}{dx}\left[(1-x^2)\frac{d P_n}{dx} \right] + n(n+1) P_n(x) = 0
+```
+
+We may rearrange the terms to obtain 
+
+```math
+\frac{d^2 P_n}{dx^2} = \frac{1}{(1-x^2)}\left( 2x \frac{d P_n(x)}{dx} - n(n+1)P_n{x} \right)
+```
+
+We may therefore compute the second derivative from the function and its first derivative. Higher derivatives may further be computed in terms of the lower ones.
+
+We demonstrate the second-derivative computation using the package [`DualNumbers.jl`](https://github.com/JuliaDiff/DualNumbers.jl) v0.5: 
+
+```jldoctest dual
+julia> using DualNumbers
+
+julia> x = 0.5;
+
+julia> xd = Dual(x, one(x));
+
+julia> d2Pl(x, P, dP, n) = (2x * dP - n*(n+1) * P)/(1 - x^2);
+
+julia> function d2Pl(x, n)
+           xd = Dual(x, one(x))
+           y = Pl(xd, n)
+           P, dP = realpart(y), dualpart(y)
+           d2Pl(x, P, dP, n)
+       end;
+
+julia> d2Pl(x, 20)
+32.838787646905985
+```
+
+We may check that this matches the result obtained using `HyperDualNumbers`:
+
+```jldoctest hyperdual
+julia> ε₁ε₂part(Pl(xh, 20))
+32.838787646905985
+```
+
+Unfortunately at this point, higher derivatives need to be evaluated analytically and expresed in terms of lower derivatives.

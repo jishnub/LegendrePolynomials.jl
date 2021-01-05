@@ -13,10 +13,10 @@ Compute [Legendre polynomials](https://en.wikipedia.org/wiki/Legendre_polynomial
 P_\ell(x) = \left((2\ell-1) x P_{\ell-1}(x) - (\ell-1)P_{\ell - 2}(x)\right)/\ell
 ```
 
-Currently this package evaluates the standard polynomials that satisfy ``P_\ell(1) = 1``. These are normalized as 
+Currently this package evaluates the standard polynomials that satisfy ``P_\ell(1) = 1`` and ``P_0(x) = 1``. These are normalized as 
 
 ```math
-\int P_m(x) P_n(x) dx = \frac{2}{2n+1} \delta_{mn}.
+\int_{-1}^1 P_m(x) P_n(x) dx = \frac{2}{2n+1} \delta_{mn}.
 ```
 
 There are two main functions: 
