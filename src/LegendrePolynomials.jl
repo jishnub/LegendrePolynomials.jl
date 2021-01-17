@@ -16,9 +16,6 @@ end
 
 assertnonnegative(l) = (l >= 0 || throw(ArgumentError("l must be >= 0, received " * string(l))))
 
-function checksize(arr, lmax)
-	maximum(axes(arr,1)) >= lmax || throw(ArgumentError("array is not large enough to store all values"))
-end
 function checklength(arr, minlength)
 	length(arr) >= minlength || throw(ArgumentError(
 		"array is not large enough to store all values, require a minimum length of " * string(minlength)))
@@ -168,7 +165,9 @@ function _checkvalues(x, l, n)
 	n >= 0 || throw(ArgumentError("order of derivative n must be >= 0"))
 end
 
-function _dnPl!(cache, x, l, n)
+Base.@propagate_inbounds function _unsafednPl!(cache, x, l, n)
+	# unsafe, assumes 1-based indexing
+	checklength(cache, l - n + 1)
 	if n == l # may short-circuit this
 		cache[1] = doublefactorial(eltype(cache), 2l-1)
 	else
@@ -219,7 +218,7 @@ julia> dnPl(0.5, 4, 0) == Pl(0.5, 4) # zero-th order derivative == Pl(x)
 true
 ```
 """
-function dnPl(x, l::Integer, n::Integer, 
+Base.@propagate_inbounds function dnPl(x, l::Integer, n::Integer, 
 	A = begin
 		_checkvalues(x, l, n)
 		# do not allocate A if the value is trivially zero
@@ -231,7 +230,6 @@ function dnPl(x, l::Integer, n::Integer,
 	)
 
 	_checkvalues(x, l, n)
-	checklength(A, l - n + 1)
 	# check if the value is trivially zero in case A is provided in the function call
 	if l < n
 		return zero(eltype(A))
@@ -239,7 +237,7 @@ function dnPl(x, l::Integer, n::Integer,
 
 	cache = OffsetArrays.no_offset_view(A)
 	# function barrier, as no_offset_view may be type-unstable
-	_dnPl!(cache, x, l, n)
+	_unsafednPl!(cache, x, l, n)
 
 	return cache[l - n + 1]
 end
@@ -366,7 +364,7 @@ function collectdnPl!(v, x; lmax::Integer, n::Integer)
 	# trivially zero for l < n
 	fill!((@view v[(0:n-1) .+ firstindex(v)]), zero(eltype(v)))
 	# populate the other elements
-	dnPl(x, lmax, n, @view v[(n:lmax) .+ firstindex(v)])
+	@inbounds dnPl(x, lmax, n, @view v[(n:lmax) .+ firstindex(v)])
 	
 	v
 end
