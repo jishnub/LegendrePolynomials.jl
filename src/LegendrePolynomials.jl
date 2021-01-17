@@ -16,9 +16,6 @@ end
 
 assertnonnegative(l) = (l >= 0 || throw(ArgumentError("l must be >= 0, received " * string(l))))
 
-function checksize(arr, lmax)
-	maximum(axes(arr,1)) >= lmax || throw(ArgumentError("array is not large enough to store all values"))
-end
 function checklength(arr, minlength)
 	length(arr) >= minlength || throw(ArgumentError(
 		"array is not large enough to store all values, require a minimum length of " * string(minlength)))
@@ -168,47 +165,9 @@ function _checkvalues(x, l, n)
 	n >= 0 || throw(ArgumentError("order of derivative n must be >= 0"))
 end
 
-"""
-	dnPl(x, l::Integer, n::Integer, [cache::AbstractVector])
-
-Compute the ``n``-th derivative ``d^n P_\\ell(x)/dx^n`` of the Legendre polynomial ``P_\\ell(x)``.
-Optionally a pre-allocated vector `cache` may be provided, which must have a minimum length of `l - n + 1` 
-and may be overwritten during the computation.
-
-The order of the derivative `n` must be non-negative. For `n == 0` this function just returns 
-Legendre polynomials.
-
-# Examples
-
-```jldoctest
-julia> dnPl(0.5, 3, 2) # second derivative of P3(x) at x = 0.5
-7.5
-
-julia> dnPl(0.5, 4, 0) == Pl(0.5, 4) # zero-th order derivative == Pl(x)
-true
-```
-"""
-function dnPl(x, l::Integer, n::Integer, 
-	A = begin
-		_checkvalues(x, l, n)
-		# do not allocate A if the value is trivially zero
-		if l < n
-			return zero(polytype(x))
-		end
-		zeros(polytype(x), l - n + 1)
-	end
-	)
-
-	_checkvalues(x, l, n)
-	checklength(A, l - n + 1)
-
-	cache = OffsetArrays.no_offset_view(A)
-
-	# check if the value is trivially zero in case A is provided in the function call
-	if l < n
-		return zero(eltype(cache))
-	end
-	
+Base.@propagate_inbounds function _unsafednPl!(cache, x, l, n)
+	# unsafe, assumes 1-based indexing
+	checklength(cache, l - n + 1)
 	if n == l # may short-circuit this
 		cache[1] = doublefactorial(eltype(cache), 2l-1)
 	else
@@ -236,6 +195,49 @@ function dnPl(x, l::Integer, n::Integer,
 			end
 		end
 	end
+	nothing
+end
+
+"""
+	dnPl(x, l::Integer, n::Integer, [cache::AbstractVector])
+
+Compute the ``n``-th derivative ``d^n P_\\ell(x)/dx^n`` of the Legendre polynomial ``P_\\ell(x)``.
+Optionally a pre-allocated vector `cache` may be provided, which must have a minimum length of `l - n + 1` 
+and may be overwritten during the computation.
+
+The order of the derivative `n` must be non-negative. For `n == 0` this function just returns 
+Legendre polynomials.
+
+# Examples
+
+```jldoctest
+julia> dnPl(0.5, 3, 2) # second derivative of P3(x) at x = 0.5
+7.5
+
+julia> dnPl(0.5, 4, 0) == Pl(0.5, 4) # zero-th order derivative == Pl(x)
+true
+```
+"""
+Base.@propagate_inbounds function dnPl(x, l::Integer, n::Integer, 
+	A = begin
+		_checkvalues(x, l, n)
+		# do not allocate A if the value is trivially zero
+		if l < n
+			return zero(polytype(x))
+		end
+		zeros(polytype(x), l - n + 1)
+	end
+	)
+
+	_checkvalues(x, l, n)
+	# check if the value is trivially zero in case A is provided in the function call
+	if l < n
+		return zero(eltype(A))
+	end
+
+	cache = OffsetArrays.no_offset_view(A)
+	# function barrier, as no_offset_view may be type-unstable
+	_unsafednPl!(cache, x, l, n)
 
 	return cache[l - n + 1]
 end
@@ -271,13 +273,12 @@ julia> collectPl!(v, 0.5, lmax = 3) # only l from 0 to 3 are populated
 ```
 """
 function collectPl!(v::AbstractVector, x; lmax::Integer  = length(v) - 1)
-	v_0based = OffsetArray(v, OffsetArrays.Origin(0))
-	checksize(v_0based, lmax)
+	checklength(v, lmax + 1)
 
 	iter = LegendrePolynomialIterator(x, lmax)
 	
 	for (l, Pl) in pairs(iter)
-		v_0based[l] = Pl
+		v[l + firstindex(v)] = Pl
 	end
 
 	v
@@ -363,7 +364,7 @@ function collectdnPl!(v, x; lmax::Integer, n::Integer)
 	# trivially zero for l < n
 	fill!((@view v[(0:n-1) .+ firstindex(v)]), zero(eltype(v)))
 	# populate the other elements
-	dnPl(x, lmax, n, @view v[(n:lmax) .+ firstindex(v)])
+	@inbounds dnPl(x, lmax, n, @view v[(n:lmax) .+ firstindex(v)])
 	
 	v
 end
