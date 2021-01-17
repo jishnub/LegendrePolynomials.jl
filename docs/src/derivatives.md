@@ -1,11 +1,31 @@
 # Derivatives of Legendre Polynomials
 
+## Analytical recursive approach
+
+The Bonnet's recursion formula 
+
+```math
+P_\ell(x) = \left((2\ell-1) x P_{\ell-1}(x) - (\ell-1)P_{\ell - 2}(x)\right)/\ell
+```
+
+may be differentiated an arbitrary number of times analytically to obtain recursion relations for higher derivatives: 
+
+```math
+\frac{d^n P_\ell(x)}{dx^n} = \frac{(2\ell-1)}{\ell} \left(x \frac{d^n P_{\ell-1}(x)}{dx^n} + 
+n \frac{d^{(n-1)} P_{\ell-1}(x)}{dx^{(n-1)}} \right) - \frac{(\ell-1)}{\ell} \frac{d^n P_{\ell-2}(x)}{dx^n}
+```
+
+This provides a simultaneous recursion relation in ``\ell`` as well as ``n``, solving which we may obtain derivatives up to any order. This is the approach used in this package to compute the derivatives of Legendre polynomials.
+
+## Automatic diferentiation
+
 The Julia automatic differentiation framework may be used to compute the derivatives of Legendre polynomials alongside their values. Since the defintions of the polynomials are completely general, they may be called with dual or hyperdual numbers as arguments to evaluate derivarives in one go. 
 We demonstrate one example of this using the package [`HyperDualNumbers.jl`](https://github.com/JuliaDiff/HyperDualNumbers.jl) v4:
 
 ```@meta
 DocTestSetup = quote
 	using LegendrePolynomials
+  using HyperDualNumbers
 end
 ```
 
@@ -85,50 +105,3 @@ Pl_dPl_d2Pl (generic function with 1 method)
 julia> Pl_dPl_d2Pl(0.5, lmax = 3)
 ([1.0, 0.5, -0.125, -0.4375], [0.0, 1.0, 1.5, 0.375], [0.0, 0.0, 3.0, 7.5])
 ```
-
-# Analytical approach for higher derivatives
-
-Legendre polynomials satisfy the differential equation 
-
-```math
-\frac{d}{dx}\left[(1-x^2)\frac{d P_n}{dx} \right] + n(n+1) P_n(x) = 0
-```
-
-We may rearrange the terms to obtain 
-
-```math
-\frac{d^2 P_n}{dx^2} = \frac{1}{(1-x^2)}\left( 2x \frac{d P_n(x)}{dx} - n(n+1)P_n{x} \right)
-```
-
-We may therefore compute the second derivative from the function and its first derivative. Higher derivatives may further be computed in terms of the lower ones.
-
-We demonstrate the second-derivative computation using the package [`DualNumbers.jl`](https://github.com/JuliaDiff/DualNumbers.jl) v0.5: 
-
-```jldoctest dual
-julia> using DualNumbers
-
-julia> x = 0.5;
-
-julia> xd = Dual(x, one(x));
-
-julia> d2Pl(x, P, dP, n) = (2x * dP - n*(n+1) * P)/(1 - x^2);
-
-julia> function d2Pl(x, n)
-           xd = Dual(x, one(x))
-           y = Pl(xd, n)
-           P, dP = realpart(y), dualpart(y)
-           d2Pl(x, P, dP, n)
-       end;
-
-julia> d2Pl(x, 20)
-32.838787646905985
-```
-
-We may check that this matches the result obtained using `HyperDualNumbers`:
-
-```jldoctest hyperdual
-julia> ε₁ε₂part(Pl(xh, 20))
-32.838787646905985
-```
-
-Unfortunately at this point, higher derivatives need to be evaluated analytically and expresed in terms of lower derivatives.
