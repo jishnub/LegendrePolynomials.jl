@@ -168,6 +168,37 @@ function _checkvalues(x, l, n)
 	n >= 0 || throw(ArgumentError("order of derivative n must be >= 0"))
 end
 
+function _dnPl!(cache, x, l, n)
+	if n == l # may short-circuit this
+		cache[1] = doublefactorial(eltype(cache), 2l-1)
+	else
+		collectPl!(cache, x, lmax = l - n)
+
+		for ni in 1:n
+			# We denote the terms as P_ni_li
+
+			# li == ni
+			P_nim1_nim1 = cache[1]
+			P_ni_ni = dPl_recursion(eltype(cache), ni, ni, nothing, P_nim1_nim1, nothing, x)
+			cache[1] = P_ni_ni
+
+			# li == ni + 1
+			P_nim1_ni = cache[2]
+			P_ni_nip1 = dPl_recursion(eltype(cache), ni + 1, ni, P_ni_ni, P_nim1_ni, nothing, x)
+			cache[2] = P_ni_nip1
+
+			for li in ni+2:min(l, l - n + ni)
+				P_ni_lim2 = cache[li - ni - 1]
+				P_ni_lim1 = cache[li - ni]
+				P_nim1_lim1 = cache[li - ni + 1]
+				P_ni_li = dPl_recursion(eltype(cache), li, ni, P_ni_lim1, P_nim1_lim1, P_ni_lim2, x)
+				cache[li - ni + 1] = P_ni_li
+			end
+		end
+	end
+	nothing
+end
+
 """
 	dnPl(x, l::Integer, n::Integer, [cache::AbstractVector])
 
@@ -201,41 +232,14 @@ function dnPl(x, l::Integer, n::Integer,
 
 	_checkvalues(x, l, n)
 	checklength(A, l - n + 1)
-
-	cache = OffsetArrays.no_offset_view(A)
-
 	# check if the value is trivially zero in case A is provided in the function call
 	if l < n
-		return zero(eltype(cache))
+		return zero(eltype(A))
 	end
-	
-	if n == l # may short-circuit this
-		cache[1] = doublefactorial(eltype(cache), 2l-1)
-	else
-		collectPl!(cache, x, lmax = l - n)
 
-		for ni in 1:n
-			# We denote the terms as P_ni_li
-
-			# li == ni
-			P_nim1_nim1 = cache[1]
-			P_ni_ni = dPl_recursion(eltype(cache), ni, ni, nothing, P_nim1_nim1, nothing, x)
-			cache[1] = P_ni_ni
-
-			# li == ni + 1
-			P_nim1_ni = cache[2]
-			P_ni_nip1 = dPl_recursion(eltype(cache), ni + 1, ni, P_ni_ni, P_nim1_ni, nothing, x)
-			cache[2] = P_ni_nip1
-
-			for li in ni+2:min(l, l - n + ni)
-				P_ni_lim2 = cache[li - ni - 1]
-				P_ni_lim1 = cache[li - ni]
-				P_nim1_lim1 = cache[li - ni + 1]
-				P_ni_li = dPl_recursion(eltype(cache), li, ni, P_ni_lim1, P_nim1_lim1, P_ni_lim2, x)
-				cache[li - ni + 1] = P_ni_li
-			end
-		end
-	end
+	cache = OffsetArrays.no_offset_view(A)
+	# function barrier, as no_offset_view may be type-unstable
+	_dnPl!(cache, x, l, n)
 
 	return cache[l - n + 1]
 end
@@ -271,13 +275,12 @@ julia> collectPl!(v, 0.5, lmax = 3) # only l from 0 to 3 are populated
 ```
 """
 function collectPl!(v::AbstractVector, x; lmax::Integer  = length(v) - 1)
-	v_0based = OffsetArray(v, OffsetArrays.Origin(0))
-	checksize(v_0based, lmax)
+	checklength(v, lmax + 1)
 
 	iter = LegendrePolynomialIterator(x, lmax)
 	
 	for (l, Pl) in pairs(iter)
-		v_0based[l] = Pl
+		v[l + firstindex(v)] = Pl
 	end
 
 	v
