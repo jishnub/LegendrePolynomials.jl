@@ -5,6 +5,9 @@ using OffsetArrays
 export Pl
 export collectPl
 export collectPl!
+export Plm
+export collectPlm
+export collectPlm!
 export dnPl
 export collectdnPl
 export collectdnPl!
@@ -25,6 +28,18 @@ end
 	# relation is valid from ℓ = 1
 	Pl = ((2ℓ-1) * x * Plm1 - (ℓ-1) * Plm2)/ℓ
 	convert(T, Pl)
+end
+
+@inline function Plm_recursion(::Type{T}, ℓ, m, P_m_lm1, P_m_lm2, x) where {T}
+	P_m_l = ((2ℓ-1) * x * P_m_lm1 - (ℓ+m-1) * P_m_lm2) / (ℓ-m)
+	convert(T, P_m_l)
+end
+
+# special case
+# l == m, in which case there are no (l-1,m) and (l-2,m) terms
+@inline function Plm_recursion_m(::Type{T}, ℓ, m, P_mm1_lm1, x) where {T}
+	P_m_l = -(2ℓ-1) * sqrt(1 - x^2) * P_mm1_lm1
+	convert(T, P_m_l)
 end
 
 @inline function dPl_recursion(::Type{T}, ℓ, n, P_n_lm1, P_nm1_lm1, P_n_lm2, x) where {T}
@@ -157,6 +172,92 @@ function doublefactorial(T, n)
 		p *= convert(T, i)
 	end
 	convert(T, p)
+end
+
+function _checkvalues_m(x, l, m)
+	assertnonnegative(l)
+	checkdomain(x)
+	m >= 0 || throw(ArgumentError("coefficient m must be >= 0"))
+end
+
+Base.@propagate_inbounds function _unsafePlm!(cache, x, l, m)
+	# unsafe, assumes 1-based indexing
+	checklength(cache, l - m + 1)
+	# handle m == 0
+	collectPl!(cache, x, lmax = l - m)
+
+	# handle m > 0
+	for mi in 1:m
+		# We denote the terms as P_mi_li
+	
+		# li == mi
+		P_mim1_mim1 = cache[1]
+		P_mi_mi = Plm_recursion_m(eltype(cache), mi, mi, P_mim1_mim1, x)
+		cache[1] = P_mi_mi
+
+		if l > m
+			# li == mi + 1
+			# P_mim1_mi = cache[2]
+			# P_mi_mip1 = Plm_recursion(eltype(cache), mi + 1, mi, P_mi_mi, P_mim1_mi, nothing, x)
+			# cache[2] = P_mi_mip1
+			P_mi_lim2 = zero(x)
+			P_mi_lim1 = cache[1]
+			P_mi_li = Plm_recursion(eltype(cache), mi + 1, mi, P_mi_lim1, P_mi_lim2, x)
+			cache[2] = P_mi_li
+
+			for li in mi+2:min(l, l - m + mi)
+				P_mi_lim2 = cache[li - mi - 1]
+				P_mi_lim1 = cache[li - mi]
+				P_mi_li = Plm_recursion(eltype(cache), li, mi, P_mi_lim1, P_mi_lim2, x)
+				cache[li - mi + 1] = P_mi_li
+			end
+		end
+	end
+	nothing
+end
+
+"""
+	Plm(x, l::Integer, m::Integer, [cache::AbstractVector])
+
+Compute the associatedLegendre polynomial ``P_\\ell,m(x)``.
+Optionally a pre-allocated vector `cache` may be provided, which must have a minimum length of `l - m + 1` 
+and may be overwritten during the computation.
+
+The coefficient `m` must be non-negative. For `m == 0` this function just returns 
+Legendre polynomials.
+
+# Examples
+
+```jldoctest
+julia> Plm(0.5, 3, 2)
+5.625
+
+julia> Plm(0.5, 4, 0) == Pl(0.5, 4)
+true
+```
+"""
+Base.@propagate_inbounds function Plm(x, l::Integer, m::Integer, 
+	A = begin
+		_checkvalues_m(x, l, m)
+		# do not allocate A if the value is trivially zero
+		if l < m
+			return zero(polytype(x))
+		end
+		zeros(polytype(x), l - m + 1)
+	end
+	)
+
+	_checkvalues_m(x, l, m)
+	# check if the value is trivially zero in case A is provided in the function call
+	if l < m
+		return zero(eltype(A))
+	end
+
+	cache = OffsetArrays.no_offset_view(A)
+	# function barrier, as no_offset_view may be type-unstable
+	_unsafePlm!(cache, x, l, m)
+
+	return cache[l - m + 1]
 end
 
 function _checkvalues(x, l, n)
@@ -302,6 +403,72 @@ julia> collectPl(0.5, lmax = 4)
 ```
 """
 collectPl(x; lmax::Integer) = collect(LegendrePolynomialIterator(x, lmax))
+
+"""
+	collectPlm(x; n::Integer, lmax::Integer)
+
+Compute the associated Legendre Polynomial ``P_\\ell,m(x)`` for the argument `x` and all degrees `l = 0:lmax`. 
+
+The coefficient `m` must be greater than or equal to zero.
+
+Returns `v` with indices `0:lmax`, where `v[l] == Plm(x, l, m)`.
+
+# Examples
+
+```jldoctest
+julia> collectPlm(0.5, lmax = 3, m = 2)
+4-element OffsetArray(::Array{Float64,1}, 0:3) with eltype Float64 with indices 0:3:
+ 0.0
+ 0.0
+ 3.0
+ 7.5
+```
+"""
+function collectPlm(x; lmax::Integer, m::Integer)
+	assertnonnegative(lmax)
+	m >= 0 || throw(ArgumentError("coefficient m must be >= 0"))
+	v = zeros(polytype(x), 0:lmax)
+	if lmax >= m
+		collectPlm!(parent(v), x; lmax = lmax, m = m)
+	end
+	v
+end
+
+"""
+	collectPlm!(v::AbstractVector, x; lmax::Integer, m::Integer)
+
+Compute the associated Legendre Polynomial ``P_\\ell,m(x)`` for the argument `x` and all degrees `l = 0:lmax`, 
+and store the result in `v`. 
+
+The coefficient `m` must be greater than or equal to zero.
+
+At output, `v[l + firstindex(v)] == Plm(x, l, m)` for `l = 0:lmax`.
+
+# Examples
+
+```jldoctest
+julia> v = zeros(4);
+
+julia> collectPlm!(v, 0.5, lmax = 3, m = 2)
+4-element Array{Float64,1}:
+ 0.0
+ 0.0
+ 3.0
+ 7.5
+```
+"""
+function collectPlm!(v, x; lmax::Integer, m::Integer)
+	assertnonnegative(lmax)
+	m >= 0 || throw(ArgumentError("coefficient m must be >= 0"))
+	checklength(v, lmax + 1)
+	
+	# trivially zero for l < m
+	fill!((@view v[(0:m-1) .+ firstindex(v)]), zero(eltype(v)))
+	# populate the other elements
+	@inbounds Plm(x, lmax, m, @view v[(m:lmax) .+ firstindex(v)])
+	
+	v
+end
 
 """
 	collectdnPl(x; n::Integer, lmax::Integer)
