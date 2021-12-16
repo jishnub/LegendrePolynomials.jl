@@ -2,16 +2,16 @@
 
 ## Analytical recursive approach
 
-The Bonnet's recursion formula 
+The Bonnet's recursion formula
 
 ```math
 P_\ell(x) = \left((2\ell-1) x P_{\ell-1}(x) - (\ell-1)P_{\ell - 2}(x)\right)/\ell
 ```
 
-may be differentiated an arbitrary number of times analytically to obtain recursion relations for higher derivatives: 
+may be differentiated an arbitrary number of times analytically to obtain recursion relations for higher derivatives:
 
 ```math
-\frac{d^n P_\ell(x)}{dx^n} = \frac{(2\ell-1)}{\ell} \left(x \frac{d^n P_{\ell-1}(x)}{dx^n} + 
+\frac{d^n P_\ell(x)}{dx^n} = \frac{(2\ell-1)}{\ell} \left(x \frac{d^n P_{\ell-1}(x)}{dx^n} +
 n \frac{d^{(n-1)} P_{\ell-1}(x)}{dx^{(n-1)}} \right) - \frac{(\ell-1)}{\ell} \frac{d^n P_{\ell-2}(x)}{dx^n}
 ```
 
@@ -19,7 +19,7 @@ This provides a simultaneous recursion relation in ``\ell`` as well as ``n``, so
 
 ## Automatic diferentiation
 
-The Julia automatic differentiation framework may be used to compute the derivatives of Legendre polynomials alongside their values. Since the defintions of the polynomials are completely general, they may be called with dual or hyperdual numbers as arguments to evaluate derivarives in one go. 
+The Julia automatic differentiation framework may be used to compute the derivatives of Legendre polynomials alongside their values. Since the defintions of the polynomials are completely general, they may be called with dual or hyperdual numbers as arguments to evaluate derivarives in one go.
 We demonstrate one example of this using the package [`HyperDualNumbers.jl`](https://github.com/JuliaDiff/HyperDualNumbers.jl) v4:
 
 ```@meta
@@ -43,21 +43,21 @@ julia> p = Pl(xh, 3)
 -0.4375 + 0.375ε₁ + 0.375ε₂ + 7.5ε₁ε₂
 ```
 
-The Legendre polynomial ``P_\ell(x)`` may be obtained using 
+The Legendre polynomial ``P_\ell(x)`` may be obtained using
 
 ```jldoctest hyperdual
 julia> realpart(p)
 -0.4375
 ```
 
-The first derivative ``dP_\ell(x)/dx`` may be obtained as 
+The first derivative ``dP_\ell(x)/dx`` may be obtained as
 
 ```jldoctest hyperdual
 julia> ε₁part(p)
 0.375
 ```
 
-The second derivative ``d^2P_\ell(x)/dx^2`` may be obtained using 
+The second derivative ``d^2P_\ell(x)/dx^2`` may be obtained using
 
 ```jldoctest hyperdual
 julia> ε₁ε₂part(p)
@@ -68,7 +68,7 @@ Something similar may also be evaluated for all `l` iteratively. For example, th
 
 ```jldoctest hyperdual
 julia> collectPl(xh, lmax=4)
-5-element OffsetArray(::Array{Hyper{Float64},1}, 0:4) with eltype Hyper{Float64} with indices 0:4:
+5-element OffsetArray(::Vector{Hyper{Float64}}, 0:4) with eltype Hyper{Float64} with indices 0:4:
                 1.0 + 0.0ε₁ + 0.0ε₂ + 0.0ε₁ε₂
                 0.5 + 1.0ε₁ + 1.0ε₂ + 0.0ε₁ε₂
              -0.125 + 1.5ε₁ + 1.5ε₂ + 3.0ε₁ε₂
@@ -80,7 +80,7 @@ We may extract the first derivatives by broadcasting the function `ε₁part` on
 
 ```jldoctest hyperdual
 julia> ε₁part.(collectPl(xh, lmax=4))
-5-element OffsetArray(::Array{Float64,1}, 0:4) with eltype Float64 with indices 0:4:
+5-element OffsetArray(::Vector{Float64}, 0:4) with eltype Float64 with indices 0:4:
   0.0
   1.0
   1.5
@@ -88,7 +88,7 @@ julia> ε₁part.(collectPl(xh, lmax=4))
  -1.5625
 ```
 
-Similarly the function `ε₁ε₂part` may be used to obtain the second derivatives. 
+Similarly the function `ε₁ε₂part` may be used to obtain the second derivatives.
 
 Several convenience functions to compute the derivatives of Legendre polynomials were available in `LegendrePolynomials` v0.2, but have been removed in v0.3. The users are encouraged to implement convenience functions to extract the derivatives as necessary. As an exmaple, we may compute the polynomials and their first and second derivatives together as
 

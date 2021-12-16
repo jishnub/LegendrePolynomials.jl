@@ -13,13 +13,13 @@ Compute [Legendre polynomials](https://en.wikipedia.org/wiki/Legendre_polynomial
 P_\ell(x) = \left((2\ell-1) x P_{\ell-1}(x) - (\ell-1)P_{\ell - 2}(x)\right)/\ell
 ```
 
-Currently this package evaluates the standard polynomials that satisfy ``P_\ell(1) = 1`` and ``P_0(x) = 1``. These are normalized as 
+Currently this package evaluates the standard polynomials that satisfy ``P_\ell(1) = 1`` and ``P_0(x) = 1``. These are normalized as
 
 ```math
 \int_{-1}^1 P_m(x) P_n(x) dx = \frac{2}{2n+1} \delta_{mn}.
 ```
 
-There are four main functions: 
+There are four main functions:
 
 * [`Pl(x,l)`](@ref Pl): this evaluates the Legendre polynomial for a given degree `l` at the argument `x`. The argument needs to satisfy `-1 <= x <= 1`.
 * [`collectPl(x; lmax)`](@ref collectPl): this evaluates all the polynomials for `l` lying in `0:lmax` at the argument `x`. As before the argument needs to lie in the domain of validity. Functionally this is equivalent to `Pl.(x, 0:lmax)`, except `collectPl` evaluates the result in one pass, and is therefore faster. There is also the in-place version [`collectPl!`](@ref) that uses a pre-allocated array.
@@ -46,7 +46,7 @@ Evaluate all the polynomials for `l` in `0:lmax` as `collectPl(x; lmax)`
 
 ```jldoctest
 julia> collectPl(0.5, lmax = 3)
-4-element OffsetArray(::Array{Float64,1}, 0:3) with eltype Float64 with indices 0:3:
+4-element OffsetArray(::Vector{Float64}, 0:3) with eltype Float64 with indices 0:3:
   1.0
   0.5
  -0.125
@@ -57,7 +57,7 @@ Evaluate all the `n`th derivatives as `collectdnPl(x; lmax, n)`:
 
 ```jldoctest
 julia> collectdnPl(0.5, lmax = 5, n = 3)
-6-element OffsetArray(::Array{Float64,1}, 0:5) with eltype Float64 with indices 0:5:
+6-element OffsetArray(::Vector{Float64}, 0:5) with eltype Float64 with indices 0:5:
   0.0
   0.0
   0.0
@@ -82,10 +82,10 @@ julia> Pl(big(1)/3, 5)
 0.3333333333333333333333333333333333333333333333333333333333333333333333333333305
 ```
 
-The precision of the latter may be altered using `setprecision`, as 
+The precision of the latter may be altered using `setprecision`, as
 
 ```jldoctest
-julia> setprecision(300) do 
+julia> setprecision(300) do
        Pl(big(1)/3, 5)
        end
 0.33333333333333333333333333333333333333333333333333333333333333333333333333333333333333333317
