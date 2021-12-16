@@ -59,7 +59,7 @@ julia> import LegendrePolynomials: LegendrePolynomialIterator
 julia> iter = LegendrePolynomialIterator(0.5, 4);
 
 julia> collect(iter)
-5-element OffsetArray(::Array{Float64,1}, 0:4) with eltype Float64 with indices 0:4:
+5-element OffsetArray(::Vector{Float64}, 0:4) with eltype Float64 with indices 0:4:
   1.0
   0.5
  -0.125
@@ -69,7 +69,7 @@ julia> collect(iter)
 julia> iter = LegendrePolynomialIterator(0.5);
 
 julia> collect(Iterators.take(iter, 5)) # evaluete 5 elements (l = 0:4)
-5-element Array{Float64,1}:
+5-element Vector{Float64}:
   1.0
   0.5
  -0.125
@@ -77,7 +77,7 @@ julia> collect(Iterators.take(iter, 5)) # evaluete 5 elements (l = 0:4)
  -0.2890625
 
 julia> collect(Iterators.take(Iterators.drop(iter, 100), 5)) # evaluate Pl for l = 100:104
-5-element Array{Float64,1}:
+5-element Vector{Float64}:
  -0.0605180259618612
   0.02196749072249231
   0.08178451892628381
@@ -90,7 +90,7 @@ struct LegendrePolynomialIterator{T, L <: Union{Integer, Nothing}, V}
 	lmax :: L
 	function LegendrePolynomialIterator{T,L,V}(x::V, lmax::L) where {T, L <: Union{Integer, Nothing}, V}
 		checkdomain(x)
-		new{T,L,V}(x, lmax)		
+		new{T,L,V}(x, lmax)
 	end
 end
 LegendrePolynomialIterator(x) = LegendrePolynomialIterator{polytype(x), Nothing, typeof(x)}(x, nothing)
@@ -202,10 +202,10 @@ end
 	dnPl(x, l::Integer, n::Integer, [cache::AbstractVector])
 
 Compute the ``n``-th derivative ``d^n P_\\ell(x)/dx^n`` of the Legendre polynomial ``P_\\ell(x)``.
-Optionally a pre-allocated vector `cache` may be provided, which must have a minimum length of `l - n + 1` 
+Optionally a pre-allocated vector `cache` may be provided, which must have a minimum length of `l - n + 1`
 and may be overwritten during the computation.
 
-The order of the derivative `n` must be non-negative. For `n == 0` this function just returns 
+The order of the derivative `n` must be non-negative. For `n == 0` this function just returns
 Legendre polynomials.
 
 # Examples
@@ -218,7 +218,7 @@ julia> dnPl(0.5, 4, 0) == Pl(0.5, 4) # zero-th order derivative == Pl(x)
 true
 ```
 """
-Base.@propagate_inbounds function dnPl(x, l::Integer, n::Integer, 
+Base.@propagate_inbounds function dnPl(x, l::Integer, n::Integer,
 	A = begin
 		_checkvalues(x, l, n)
 		# do not allocate A if the value is trivially zero
@@ -245,7 +245,7 @@ end
 """
 	collectPl!(v::AbstractVector, x; [lmax::Integer = length(v) - 1])
 
-Compute the Legendre Polynomials ``P_\\ell(x)`` for the argument `x` and all degrees `l` in `0:lmax`, 
+Compute the Legendre Polynomials ``P_\\ell(x)`` for the argument `x` and all degrees `l` in `0:lmax`,
 and store them in `v`.
 
 At output `v[firstindex(v) + l] == Pl(x,l)`.
@@ -255,7 +255,7 @@ At output `v[firstindex(v) + l] == Pl(x,l)`.
 julia> v = zeros(4);
 
 julia> collectPl!(v, 0.5)
-4-element Array{Float64,1}:
+4-element Vector{Float64}:
   1.0
   0.5
  -0.125
@@ -264,7 +264,7 @@ julia> collectPl!(v, 0.5)
 julia> v = zeros(0:4);
 
 julia> collectPl!(v, 0.5, lmax = 3) # only l from 0 to 3 are populated
-5-element OffsetArray(::Array{Float64,1}, 0:4) with eltype Float64 with indices 0:4:
+5-element OffsetArray(::Vector{Float64}, 0:4) with eltype Float64 with indices 0:4:
   1.0
   0.5
  -0.125
@@ -276,7 +276,7 @@ function collectPl!(v::AbstractVector, x; lmax::Integer  = length(v) - 1)
 	checklength(v, lmax + 1)
 
 	iter = LegendrePolynomialIterator(x, lmax)
-	
+
 	for (l, Pl) in pairs(iter)
 		v[l + firstindex(v)] = Pl
 	end
@@ -293,7 +293,7 @@ Return `P` with indices `0:lmax`, where `P[l] == Pl(x,l)`
 # Examples
 ```jldoctest
 julia> collectPl(0.5, lmax = 4)
-5-element OffsetArray(::Array{Float64,1}, 0:4) with eltype Float64 with indices 0:4:
+5-element OffsetArray(::Vector{Float64}, 0:4) with eltype Float64 with indices 0:4:
   1.0
   0.5
  -0.125
@@ -306,7 +306,7 @@ collectPl(x; lmax::Integer) = collect(LegendrePolynomialIterator(x, lmax))
 """
 	collectdnPl(x; n::Integer, lmax::Integer)
 
-Compute the ``n``-th derivative of a Legendre Polynomial ``P_\\ell(x)`` for the argument `x` and all degrees `l = 0:lmax`. 
+Compute the ``n``-th derivative of a Legendre Polynomial ``P_\\ell(x)`` for the argument `x` and all degrees `l = 0:lmax`.
 
 The order of the derivative `n` must be greater than or equal to zero.
 
@@ -316,7 +316,7 @@ Returns `v` with indices `0:lmax`, where `v[l] == dnPl(x, l, n)`.
 
 ```jldoctest
 julia> collectdnPl(0.5, lmax = 3, n = 2)
-4-element OffsetArray(::Array{Float64,1}, 0:3) with eltype Float64 with indices 0:3:
+4-element OffsetArray(::Vector{Float64}, 0:3) with eltype Float64 with indices 0:3:
  0.0
  0.0
  3.0
@@ -336,8 +336,8 @@ end
 """
 	collectdnPl!(v::AbstractVector, x; lmax::Integer, n::Integer)
 
-Compute the ``n``-th derivative of a Legendre Polynomial ``P_\\ell(x)`` for the argument `x` and all degrees `l = 0:lmax`, 
-and store the result in `v`. 
+Compute the ``n``-th derivative of a Legendre Polynomial ``P_\\ell(x)`` for the argument `x` and all degrees `l = 0:lmax`,
+and store the result in `v`.
 
 The order of the derivative `n` must be greater than or equal to zero.
 
@@ -349,7 +349,7 @@ At output, `v[l + firstindex(v)] == dnPl(x, l, n)` for `l = 0:lmax`.
 julia> v = zeros(4);
 
 julia> collectdnPl!(v, 0.5, lmax = 3, n = 2)
-4-element Array{Float64,1}:
+4-element Vector{Float64}:
  0.0
  0.0
  3.0
@@ -360,12 +360,12 @@ function collectdnPl!(v, x; lmax::Integer, n::Integer)
 	assertnonnegative(lmax)
 	n >= 0 || throw(ArgumentError("order of derivative n must be >= 0"))
 	checklength(v, lmax + 1)
-	
+
 	# trivially zero for l < n
 	fill!((@view v[(0:n-1) .+ firstindex(v)]), zero(eltype(v)))
 	# populate the other elements
 	@inbounds dnPl(x, lmax, n, @view v[(n:lmax) .+ firstindex(v)])
-	
+
 	v
 end
 
