@@ -453,8 +453,8 @@ julia> collectPlm!(v, 0.5, lmax = 3, m = 2)
 4-element Array{Float64,1}:
  0.0
  0.0
- 3.0
- 7.5
+ 2.25
+ 5.625
 ```
 """
 function collectPlm!(v, x; lmax::Integer, m::Integer)
@@ -486,8 +486,8 @@ julia> collectdnPl(0.5, lmax = 3, n = 2)
 4-element OffsetArray(::Vector{Float64}, 0:3) with eltype Float64 with indices 0:3:
  0.0
  0.0
- 3.0
- 7.5
+ 2.25
+ 5.625
 ```
 """
 function collectdnPl(x; lmax::Integer, n::Integer)
