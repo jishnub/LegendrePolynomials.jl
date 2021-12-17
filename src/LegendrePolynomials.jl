@@ -405,7 +405,7 @@ julia> collectPl(0.5, lmax = 4)
 collectPl(x; lmax::Integer) = collect(LegendrePolynomialIterator(x, lmax))
 
 """
-	collectPlm(x; n::Integer, lmax::Integer)
+	collectPlm(x; lmax::Integer, m::Integer)
 
 Compute the associated Legendre Polynomial ``P_\\ell,m(x)`` for the argument `x` and all degrees `l = 0:lmax`. 
 
@@ -471,7 +471,7 @@ function collectPlm!(v, x; lmax::Integer, m::Integer)
 end
 
 """
-	collectdnPl(x; n::Integer, lmax::Integer)
+	collectdnPl(x; lmax::Integer, n::Integer)
 
 Compute the ``n``-th derivative of a Legendre Polynomial ``P_\\ell(x)`` for the argument `x` and all degrees `l = 0:lmax`.
 
