@@ -68,7 +68,7 @@ Return an iterator that generates the values of the Legendre polynomials ``P_\\e
 If `lmax` is specified then only the values of ``P_\\ell(x)`` from `0` to `lmax` are returned.
 
 # Examples
-```jldoctest
+``jldoctest
 julia> import LegendrePolynomials: LegendrePolynomialIterator
 
 julia> iter = LegendrePolynomialIterator(0.5, 4);
@@ -84,7 +84,7 @@ julia> collect(iter)
 julia> iter = LegendrePolynomialIterator(0.5);
 
 julia> collect(Iterators.take(iter, 5)) # evaluete 5 elements (l = 0:4)
-5-element Vector{Float64}:
+5-element Array{Float64,1}:
   1.0
   0.5
  -0.125
@@ -92,7 +92,7 @@ julia> collect(Iterators.take(iter, 5)) # evaluete 5 elements (l = 0:4)
  -0.2890625
 
 julia> collect(Iterators.take(Iterators.drop(iter, 100), 5)) # evaluate Pl for l = 100:104
-5-element Vector{Float64}:
+5-element Array{Float64,1}:
  -0.0605180259618612
   0.02196749072249231
   0.08178451892628381
@@ -417,11 +417,11 @@ Returns `v` with indices `0:lmax`, where `v[l] == Plm(x, l, m)`.
 
 ```jldoctest
 julia> collectPlm(0.5, lmax = 3, m = 2)
-4-element OffsetArray(::Array{Float64,1}, 0:3) with eltype Float64 with indices 0:3:
+4-element OffsetArray(::Vector{Float64}, 0:3) with eltype Float64 with indices 0:3:
  0.0
  0.0
- 3.0
- 7.5
+ 2.25
+ 5.625
 ```
 """
 function collectPlm(x; lmax::Integer, m::Integer)
@@ -450,7 +450,7 @@ At output, `v[l + firstindex(v)] == Plm(x, l, m)` for `l = 0:lmax`.
 julia> v = zeros(4);
 
 julia> collectPlm!(v, 0.5, lmax = 3, m = 2)
-4-element Array{Float64,1}:
+4-element Vector{Float64}:
  0.0
  0.0
  2.25
@@ -486,8 +486,8 @@ julia> collectdnPl(0.5, lmax = 3, n = 2)
 4-element OffsetArray(::Vector{Float64}, 0:3) with eltype Float64 with indices 0:3:
  0.0
  0.0
- 2.25
- 5.625
+ 3.0
+ 7.5
 ```
 """
 function collectdnPl(x; lmax::Integer, n::Integer)
@@ -512,7 +512,7 @@ At output, `v[l + firstindex(v)] == dnPl(x, l, n)` for `l = 0:lmax`.
 
 # Examples
 
-```jldoctest
+``jldoctest
 julia> v = zeros(4);
 
 julia> collectdnPl!(v, 0.5, lmax = 3, n = 2)
