@@ -26,6 +26,13 @@ julia> Pl(0.5, 20)
 -0.04835838106737356
 ```
 
+To compute the associated Legendre polynomial of degree `l,m` at the argument `x`, use `Plm(x, l, m)`:
+
+```julia
+julia> Plm(0.5, 10, 5)
+30086.169706116176
+```
+
 To compute the n-th derivative of the Legendre polynomial of degree `l` at the argument `x`, use `dnPl(x, l, n)`:
 
 ```julia
@@ -44,6 +51,19 @@ julia> collectPl(0.5, lmax = 5)
  -0.4375
  -0.2890625
   0.08984375
+```
+
+To compute all the associated Legendre polynomials for `0 <= l <= lmax`, use `collectPlm(x; m, lmax)`
+
+```julia
+julia> collectPlm(0.5, lmax = 5, m = 3)
+6-element OffsetArray(::Vector{Float64}, 0:5) with eltype Float64 with indices 0:5:
+   0.0
+   0.0
+   0.0
+  -9.742785792574933
+ -34.099750274012266
+ -42.62468784251533
 ```
 
 To compute all the n-th derivatives for `0 <= l <= lmax`, use `collectdnPl(x; n, lmax)`

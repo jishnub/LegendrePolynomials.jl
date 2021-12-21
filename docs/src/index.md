@@ -7,7 +7,7 @@ end
 
 # Introduction
 
-Compute [Legendre polynomials](https://en.wikipedia.org/wiki/Legendre_polynomials) and their derivatives using a 3-term recursion relation (Bonnet’s recursion formula).
+Compute [Legendre polynomials](https://en.wikipedia.org/wiki/Legendre_polynomials), [Associated Legendre polynomials](https://en.wikipedia.org/wiki/Associated_Legendre_polynomials), and their derivatives using a 3-term recursion relation (Bonnet’s recursion formula).
 
 ```math
 P_\ell(x) = \left((2\ell-1) x P_{\ell-1}(x) - (\ell-1)P_{\ell - 2}(x)\right)/\ell
@@ -19,10 +19,12 @@ Currently this package evaluates the standard polynomials that satisfy ``P_\ell(
 \int_{-1}^1 P_m(x) P_n(x) dx = \frac{2}{2n+1} \delta_{mn}.
 ```
 
-There are four main functions:
+There are six main functions: 
 
 * [`Pl(x,l)`](@ref Pl): this evaluates the Legendre polynomial for a given degree `l` at the argument `x`. The argument needs to satisfy `-1 <= x <= 1`.
 * [`collectPl(x; lmax)`](@ref collectPl): this evaluates all the polynomials for `l` lying in `0:lmax` at the argument `x`. As before the argument needs to lie in the domain of validity. Functionally this is equivalent to `Pl.(x, 0:lmax)`, except `collectPl` evaluates the result in one pass, and is therefore faster. There is also the in-place version [`collectPl!`](@ref) that uses a pre-allocated array.
+* [`Plm(x, l, m)`](@ref Plm): this evaluates the associated Legendre polynomial ``P_\ell,m(x)`` at the argument ``x``. The argument needs to satisfy `-1 <= x <= 1`.
+* [`collectPlm(x; m, lmax)`](@ref collectPlm): this evaluates the associated Legendre polynomials with coefficient `m` for `l = 0:lmax`. There is also an in-place version [`collectPlm!`](@ref) that uses a pre-allocated array.
 * [`dnPl(x, l, n)`](@ref dnPl): this evaluates the ``n``-th derivative of the Legendre polynomial ``P_\ell(x)`` at the argument ``x``. The argument needs to satisfy `-1 <= x <= 1`.
 * [`collectdnPl(x; n, lmax)`](@ref collectdnPl): this evaluates the ``n``-th derivative of all the Legendre polynomials for `l = 0:lmax`. There is also an in-place version [`collectdnPl!`](@ref) that uses a pre-allocated array.
 
@@ -33,6 +35,13 @@ Evaluate the Legendre polynomial for one `l` at an argument`x` as `Pl(x, l)`:
 ```jldoctest
 julia> Pl(0.5, 3)
 -0.4375
+```
+
+Evaluate the associated Legendre Polynomial one `l,m` pair as `Plm(x, l, m)`:
+
+```jldoctest
+julia> Plm(0.5, 3, 2)
+5.625
 ```
 
 Evaluate the `n`th derivative for one `l` as `dnPl(x, l, n)`:
@@ -51,6 +60,19 @@ julia> collectPl(0.5, lmax = 3)
   0.5
  -0.125
  -0.4375
+```
+
+Evaluate all the associated Legendre Polynomials for coefficient `m` as `collectPlm(x; lmax, m)`:
+
+```jldoctest
+julia> collectPlm(0.5, lmax = 5, m = 3)
+6-element OffsetArray(::Vector{Float64}, 0:5) with eltype Float64 with indices 0:5:
+   0.0
+   0.0
+   0.0
+  -9.742785792574933
+ -34.099750274012266
+ -42.62468784251533
 ```
 
 Evaluate all the `n`th derivatives as `collectdnPl(x; lmax, n)`:
