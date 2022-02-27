@@ -5,7 +5,7 @@ using HyperDualNumbers
 using Aqua
 
 @testset "Project quality assurance" begin
-    Aqua.test_all(LegendrePolynomials)
+    Aqua.test_all(LegendrePolynomials, ambiguities = false)
 end
 
 import LegendrePolynomials: LegendrePolynomialIterator
@@ -37,9 +37,10 @@ end
 @testset "Pl" begin
 	x = 2rand() - 1
     lmax = 5
-    P = collectPl(x, lmax = lmax)
-    P2 = collectPlm(x, lmax = lmax, m = 0)
-    P3 = collectdnPl(x, lmax = lmax, n = 0)
+    P = @inferred collectPl(x, lmax = lmax)
+    T = Union{OffsetVector{Float64, Vector{Float64}}, OffsetVector{BigFloat, Vector{BigFloat}}}
+    P2 = @inferred T collectPlm(x, lmax = lmax, m = 0)
+    P3 = @inferred collectdnPl(x, lmax = lmax, n = 0)
     @test P[0] == P2[0] == P3[0] == 1
     @test P[0] == P2[0] == P3[0] == 1
     @test P[1] == P2[1] == P3[1] == x
@@ -48,9 +49,19 @@ end
     @test P[4] ≈ P2[4] ≈ P3[4] ≈ (35x^4 - 30x^2 + 3)/8
     @test P[5] ≈ P2[5] ≈ P3[5] ≈ (63x^5 - 70x^3 + 15x)/8
 
+    P = @inferred collectPl(x, lmax = lmax, norm = Val(:normalized))
+    P2 = @inferred collectPlm(x, lmax = lmax, m = 0, norm = Val(:normalized))
+    @test P == P2
+
     @testset "x = 0" begin
         for l = 1:2:101
-            @test Pl(0, l) == Plm(0, l, 0) == dnPl(0, l, 0) == 0
+            P1 = @inferred Pl(0, l)
+            P2 = @inferred Union{BigFloat, Float64} Plm(0, l, 0)
+            P3 = @inferred dnPl(0, l, 0)
+            @test P1 == P2 == P3 == 0
+            P1 = @inferred Pl(0, l, norm = Val(:normalized))
+            P2 = @inferred Plm(0, l, 0, norm = Val(:normalized))
+            @test P1 == P2 == 0
         end
     end
 
@@ -77,17 +88,15 @@ end
 end
 
 @testset "Plm" begin
-    @test Plm(0.5, 3, 10) == 0
-    @test Plm(0.5, 3, 10, zeros(100)) == 0
     @testset "double factorial" begin
-        @test Plm(0.5, 2, 2) == 9/4
+        @test Plm(0.5, 2, 2) ≈ 9/4
         @test Plm(0.5, 3, 3) ≈ -45/8*sqrt(3)
-        @test Plm(0.5, 3, 3, zeros(1)) ≈ -45/8*sqrt(3)
-        @test Plm(0.5, 10, 0, zeros(11)) == -49343/262144
-        @test Plm(0.5, 10, 6, zeros(5)) == -674999325/8192
-        @test Plm(0.5, 10, 10, zeros(1)) ≈ 159099165225/1024
+        @test Plm(0.5, 3, 3) ≈ -45/8*sqrt(3)
+        @test Plm(0.5, 10, 0) ≈ -49343/262144
+        @test Plm(0.5, 10, 6) ≈ -674999325/8192
+        @test Plm(0.5, 10, 10) ≈ 159099165225/1024
     end
-    @test_throws ArgumentError Plm(0.5, 10, 3, zeros(1))
+    @test_throws ArgumentError Plm(0.5, 3, 10)
     @test_throws ArgumentError Plm(0.5, -1, 3)
     @test_throws ArgumentError Plm(0.5, 1, -3)
     @test_throws DomainError Plm(2.5, 1, 3)
@@ -132,7 +141,6 @@ end
     @test_throws DomainError collectPlm!(v, -2, lmax = 3, m = 2)
     @test_throws ArgumentError collectPlm!(v, 0, lmax = -1, m = 3)
     @test_throws ArgumentError collectPlm!(v, 0.5, lmax = 1, m = -3)
-    @test_throws ArgumentError collectPlm!(zeros(1), 0, lmax = 3, m = 3)
 end
 
 @testset "collectPlm" begin
@@ -162,7 +170,6 @@ end
     P = eps1.(collectPl(xh, lmax = lmax))
     P2 = collectPlm(x, lmax = lmax, m = 1) / (- sqrt(1 - x^2))
     P3 = collectdnPl(x, lmax = lmax, n = 1)
-    @test P[0] == P2[0] == P3[0] == 0
     @test P[1] == P2[1] == P3[1] == 1
     @test P[2] ≈ P2[2] ≈ P3[2] ≈ 3x
     @test P[3] ≈ P2[3] ≈ P3[3] ≈ (-3 + 15x^2)/2
@@ -176,7 +183,7 @@ end
         dP1h = eps1.(P)
         dP1 = collectdnPl(x, lmax = lmax, n = 1)
 
-        for l in axes(dP1,1)
+        for l in 1:lmax
             @test dP1h[l] == dP1[l] == l*(l+1)/2
         end
 
@@ -185,7 +192,7 @@ end
         dPm1h = eps1.(P)
         dPm1 = collectdnPl(x, lmax = lmax, n = 1)
 
-        for l in axes(dPm1,1)
+        for l in 1:lmax
             @test dPm1h[l] == dPm1[l] == (-1)^(l+1) * l*(l+1)/2
         end
     end
@@ -198,9 +205,6 @@ end
     P = eps1eps2.(collectPl(xh, lmax = lmax))
     P2 = collectPlm(x, lmax = lmax, m = 2) / (1 - x^2)
     P3 = collectdnPl(x, lmax = lmax, n = 2)
-
-    @test P[0] == P2[0] == P3[0] == 0
-    @test P[1] == P2[1] == P3[1] == 0
 
     @test P[2] ≈ P2[2] ≈ P3[2] ≈ 3
     @test P[3] ≈ P2[3] ≈ P3[3] ≈ 15x

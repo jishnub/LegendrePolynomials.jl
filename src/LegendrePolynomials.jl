@@ -1,6 +1,7 @@
 module LegendrePolynomials
 
 using OffsetArrays
+using SpecialFunctions
 
 export Pl
 export collectPl
@@ -13,59 +14,96 @@ export collectdnPl
 export collectdnPl!
 
 function checkdomain(x)
-	abs(x) > 1 && throw(DomainError(x,
-		"Legendre Polynomials are defined for arguments lying in -1 ⩽ x ⩽ 1"))
+    abs(x) > 1 && throw(DomainError(x,
+        "Legendre Polynomials are defined for arguments lying in -1 ⩽ x ⩽ 1"))
 end
 
-assertnonnegative(l) = (l >= 0 || throw(ArgumentError("l must be >= 0, received " * string(l))))
+assertnonnegative(l) = l >= 0 || throw(ArgumentError("l must be >= 0, received " * string(l)))
+assertnonnegative(::Nothing) = nothing
+
+checklm(l::Integer, m::Integer) = 0 <= m <= l || throw(ArgumentError("m must satisfy 0 <= m <= l"))
+checklm(::Any, ::Any) = nothing
 
 function checklength(arr, minlength)
-	length(arr) >= minlength || throw(ArgumentError(
-		"array is not large enough to store all values, require a minimum length of " * string(minlength)))
+    length(arr) >= minlength || throw(ArgumentError(
+        "array is not large enough to store all values, require a minimum length of " * string(minlength)))
 end
 
-@inline function Pl_recursion(::Type{T}, ℓ, Plm1, Plm2, x) where {T}
-	# relation is valid from ℓ = 1
-	Pl = ((2ℓ-1) * x * Plm1 - (ℓ-1) * Plm2)/ℓ
-	convert(T, Pl)
+@inline function Pl_recursion(::Type{T}, ℓ, (Plm1, Plm2, α), x) where {T}
+  # relation is valid from ℓ = 1
+  Pl = ((2ℓ-1) * x * Plm1 - (ℓ-1) * Plm2)/ℓ
+  convert(T, Pl), α
 end
 
-@inline function Plm_recursion(::Type{T}, ℓ, m, P_m_lm1, P_m_lm2, x) where {T}
-	P_m_l = ((2ℓ-1) * x * P_m_lm1 - (ℓ+m-1) * P_m_lm2) / (ℓ-m)
-	convert(T, P_m_l)
-end
-
-# special case
-# l == m, in which case there are no (l-1,m) and (l-2,m) terms
-@inline function Plm_recursion_m(::Type{T}, ℓ, m, P_mm1_lm1, x) where {T}
-	P_m_l = -(2ℓ-1) * sqrt(1 - x^2) * P_mm1_lm1
-	convert(T, P_m_l)
+@inline function Plm_recursion(::Type{T}, ℓ, m, (Plm1, Plm2, α_ℓm1_m), x) where {T}
+    # relation is valid from ℓ = m+2
+    α_ℓ_m = coeff(ℓ, m)
+    Pl = α_ℓ_m * (x * Plm1 - inv(α_ℓm1_m) * Plm2)
+    return convert(T, Pl), α_ℓ_m
 end
 
 @inline function dPl_recursion(::Type{T}, ℓ, n, P_n_lm1, P_nm1_lm1, P_n_lm2, x) where {T}
-	P_n_l = ((2ℓ - 1) * (x * P_n_lm1 + n * P_nm1_lm1) - (ℓ - 1) * P_n_lm2)/ℓ
-	convert(T, P_n_l)
+  P_n_l = ((2ℓ - 1) * (x * P_n_lm1 + n * P_nm1_lm1) - (ℓ - 1) * P_n_lm2)/ℓ
+  convert(T, P_n_l)
 end
 
 # special cases
 # case 1 : l == n, in which case there are no (l-1,n) and (l-2,n) terms
 @inline function dPl_recursion(::Type{T}, ℓ, n, ::Nothing, P_nm1_lm1, ::Nothing, x) where {T}
-	P_n_l = (2ℓ-1) * P_nm1_lm1
-	convert(T, P_n_l)
+    P_n_l = (2ℓ-1) * P_nm1_lm1
+    convert(T, P_n_l)
 end
 # case 1 : l == n + 1, in which case there's no (l-2,n) term
 @inline function dPl_recursion(::Type{T}, ℓ, n, P_n_lm1, P_nm1_lm1, ::Nothing, x) where {T}
-	P_n_l = ((2ℓ - 1) * (x * P_n_lm1 + n * P_nm1_lm1))/ℓ
-	convert(T, P_n_l)
+    P_n_l = ((2ℓ - 1) * (x * P_n_lm1 + n * P_nm1_lm1))/ℓ
+    convert(T, P_n_l)
 end
 
-polytype(x) = typeof(float(x*x))
+function logplm_norm(l, m)
+    T = promote_type(typeof(l), typeof(m))
+    (log(T(2)) - log(2T(l)+1) + logfactorial(l + m) - logfactorial(l - m))/2
+end
+function _maybebigexp(t)
+    if t < log(prevfloat(typemax(t)))
+        return exp(t)
+    else
+        return exp(big(t))
+    end
+end
+function plm_norm(l, m)
+    t = logplm_norm(l, m)
+    _maybebigexp(t)
+end
+normtype(l, m, x, ::Val{:normalized}) = polytype(x)
+normtype(l, m, x, ::Val{:standard}) = typeof(plm_norm(l, m))
+function logabspll_prefactor(l, T = typeof(l))
+    lT = T(l)
+    a = (logfactorial(2lT-1) + log(2lT+1) - log(lT))/2
+    b = l*log(T(2)) + logfactorial(lT-1)
+    a - b
+end
+neg1pow(l) = iseven(l) ? 1 : -1
+function pll_prefactor(l, T = typeof(l))
+    l == 0 && return sqrt(oftype(logfactorial(T(l)), 1/2))
+    t = logabspll_prefactor(l, T)
+    neg1pow(l) * exp(t)
+end
+function coeff(l, m, T = float(promote_type(typeof(l), typeof(m))))
+    √((2T(l) - 1)/((T(l)-m)*(T(l)+m))*(2T(l)+1))
+end
+
+polytype(x) = float(typeof(x))
 
 """
-	LegendrePolynomialIterator(x, [lmax::Integer])
+    LegendrePolynomialIterator(x, [lmax::Union{Integer, Nothing}, [m::Integer = 0]])
 
-Return an iterator that generates the values of the Legendre polynomials ``P_\\ell(x)`` for the given `x`.
-If `lmax` is specified then only the values of ``P_\\ell(x)`` from `0` to `lmax` are returned.
+Return an iterator that generates the values of the normalized associated Legendre polynomials
+``P_\\ell^m(x)`` for the given `x`. For `m == 0` these are identical to the normalized Legendre
+polynomials.
+
+If `lmax` is left unspecified or set to `nothing`, this returns an unbounded iterator that loops
+over all valid values of `l`. On the other hand, if `lmax` is specified,
+then only the values of ``P_\\ell^m(x)`` from `m` to `lmax` are returned.
 
 !!! warn
     `LegendrePolynomialIterator` will not be a part of the public API from the next minor release.
@@ -103,57 +141,100 @@ julia> collect(Iterators.take(Iterators.drop(iter, 100), 5)) # evaluate Pl for l
  -0.021651535258316177
 ```
 """
-struct LegendrePolynomialIterator{T, L <: Union{Integer, Nothing}, V}
-	x :: V
-	lmax :: L
-	function LegendrePolynomialIterator{T,L,V}(x::V, lmax::L) where {T, L <: Union{Integer, Nothing}, V}
-        Base.depwarn("LegendrePolynomialIterator will not be a part of the public API from the next minor release", :LegendrePolynomialIterator)
-		checkdomain(x)
-		new{T,L,V}(x, lmax)
-	end
+struct LegendrePolynomialIterator{T, L<:Union{Integer,Nothing}, M<:Integer, V}
+    x :: V
+    lmax :: L
+    m :: M
+    function LegendrePolynomialIterator{T,L,M,V}(x::V, lmax::L, m::M) where {T, L<:Union{Integer,Nothing}, M<:Integer, V}
+        checkdomain(x)
+        new{T,L,M,V}(x, lmax, m)
+    end
 end
-LegendrePolynomialIterator(x) = LegendrePolynomialIterator{polytype(x), Nothing, typeof(x)}(x, nothing)
-function LegendrePolynomialIterator(x, lmax)
-	assertnonnegative(lmax)
-	LegendrePolynomialIterator{polytype(x), typeof(lmax), typeof(x)}(x, lmax)
+LegendrePolynomialIterator(x) = LegendrePolynomialIterator{polytype(x), Nothing, Int, typeof(x)}(x, nothing, 0)
+function LegendrePolynomialIterator(x, lmax::Integer)
+    assertnonnegative(lmax)
+    LegendrePolynomialIterator{polytype(x), typeof(lmax), Int, typeof(x)}(x, lmax, 0)
+end
+function LegendrePolynomialIterator(x, lmax::Integer, m::Integer)
+    assertnonnegative(lmax)
+    checklm(lmax, m)
+    lmaxT, mT = promote(lmax, m)
+    LegendrePolynomialIterator{polytype(x), typeof(lmaxT), typeof(mT), typeof(x)}(x, lmaxT, mT)
 end
 
 Base.eltype(::Type{<:LegendrePolynomialIterator{T}}) where {T} = T
 Base.IteratorSize(::Type{<:LegendrePolynomialIterator{<:Any,Nothing}}) = Base.IsInfinite()
 
-function Base.iterate(::LegendrePolynomialIterator{T}) where {T}
-	return one(T), (1, (zero(T), one(T)))
+# starting values, l == m
+function Base.iterate(iter::LegendrePolynomialIterator{T}) where {T}
+    m = iter.m
+    if m == 0
+        Pl = one(T)
+    else
+        x = iter.x
+        f = pll_prefactor(m)
+        t = f * (√(1-x^2))^m
+        Pl = convert(T, t)
+    end
+    Plm1 = zero(T)
+    α_ℓ_m = Inf
+    return Pl, (m+1, (Pl, Plm1, α_ℓ_m))
 end
-function Base.iterate(iter::LegendrePolynomialIterator{T,Nothing}, state) where {T}
-	l, (Plm2, Plm1) = state
-	x = iter.x
-	Pl = Pl_recursion(T, l, Plm1, Plm2, x)
-	return Pl, (l+1, (Plm1, Pl))
-end
+_isdone(l, lmax) = l > lmax
+_isdone(::Any, ::Nothing) = false
+
 function Base.iterate(iter::LegendrePolynomialIterator{T}, state) where {T}
-	l, (Plm2, Plm1) = state
-	l > iter.lmax && return nothing
-	x = iter.x
-	Pl = Pl_recursion(T, l, Plm1, Plm2, x)
-	return Pl, (l+1, (Plm1, Pl))
+    l, prevstate = state
+    _isdone(l, iter.lmax) && return nothing
+    m = iter.m
+    x = iter.x
+    if m == 0
+        # standard-norm Bonnet iteration
+        Pl, α_ℓ_m = Pl_recursion(T, l, prevstate, x)
+    else
+        # iterate over normalized functions
+        Pl, α_ℓ_m = Plm_recursion(T, l, m, prevstate, x)
+    end
+    Plm1 = first(prevstate)
+    nextstate = (Pl, Plm1, α_ℓ_m)
+    return Pl, (l+1, nextstate)
 end
 
-Base.length(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = iter.lmax + 1
+Base.length(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = iter.lmax - iter.m + 1
 Base.size(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = (length(iter),)
-Base.axes(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = (0:iter.lmax, )
-Base.keys(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = 0:iter.lmax
+Base.axes(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = (iter.m:iter.lmax, )
+Base.keys(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = iter.m:iter.lmax
 
-function Base.collect(iter::LegendrePolynomialIterator{T,<:Integer}) where {T}
-	arr = zeros(T, 0:iter.lmax)
-	collectPl!(arr, iter.x; lmax = iter.lmax)
+Base.copy(iter::LegendrePolynomialIterator) = typeof(iter)(iter.x, iter.lmax, iter.m)
+
+maybenormalize(P, l, ::Val{:normalized}) = oftype(P, P * √(2/(2l+1)))
+maybenormalize(P, l, ::Val{:standard}) = P
+
+function maybenormalize(P, l, m, norm::Val{:normalized})
+    if m == 0
+        return maybenormalize(P, l, norm)
+    else
+        return P
+    end
 end
-
-Base.copy(iter::LegendrePolynomialIterator) = typeof(iter)(iter.x, iter.lmax)
+function maybenormalize(P, l, m, norm::Val{:standard})
+    if m == 0
+        return maybenormalize(P, l, norm)
+    else
+        return plm_norm(l, m) * P
+    end
+end
+maybenormalize(P, l, m, norm::Val) = throw(ArgumentError("norm = $norm undefined, valid norms are :standard and :normalized"))
 
 """
-	Pl(x, l::Integer)
+    Pl(x, l::Integer; norm = Val(:standard))
 
 Compute the Legendre Polynomial ``P_\\ell(x)`` for the argument `x` and the degree `l`.
+
+The default norm is chosen to be `Val(:standard)`, in which case the polynomials
+satisfy `Pl(1, l) == 1` for all `l`.
+Optionally, the `norm` may be set to `Val(:normalized)` to obtain normalized Legendre polynomials.
+These have an L2 norm of `1`.
 
 # Examples
 ```jldoctest
@@ -162,72 +243,38 @@ julia> Pl(1, 2)
 
 julia> Pl(0.5, 20)
 -0.04835838106737356
+
+julia> Pl(0.5, 20, norm = Val(:normalized))
+-0.010680579639558057
 ```
 """
-function Pl(x, l::Integer)
-	iter = LegendrePolynomialIterator(x)
-	d = Iterators.drop(iter, l) # 0 to l-1
-	first(d)
+function Pl(x, l::Integer; norm = Val(:standard))
+    _checkvalues(x, l, 0, 0)
+    T = polytype(x)
+    if x == 1
+        return one(T)
+    elseif x == -1
+        return convert(T, neg1pow(l))
+    elseif x == 0.5 && isodd(l)
+        return zero(T)
+    end
+    Plm(x, l, 0; norm = norm)::T
 end
 
 function doublefactorial(T, n)
-	p = convert(T, one(n))
-	for i in n:-2:1
-		p *= convert(T, i)
-	end
-	convert(T, p)
-end
-
-function _checkvalues_m(x, l, m)
-	assertnonnegative(l)
-	checkdomain(x)
-	m >= 0 || throw(ArgumentError("coefficient m must be >= 0"))
-end
-
-Base.@propagate_inbounds function _unsafePlm!(cache, x, l, m)
-	# unsafe, assumes 1-based indexing
-	checklength(cache, l - m + 1)
-	# handle m == 0
-	collectPl!(cache, x, lmax = l - m)
-
-	# handle m > 0
-	for mi in 1:m
-		# We denote the terms as P_mi_li
-
-		# li == mi
-		P_mim1_mim1 = cache[1]
-		P_mi_mi = Plm_recursion_m(eltype(cache), mi, mi, P_mim1_mim1, x)
-		cache[1] = P_mi_mi
-
-		if l > m
-			# li == mi + 1
-			# P_mim1_mi = cache[2]
-			# P_mi_mip1 = Plm_recursion(eltype(cache), mi + 1, mi, P_mi_mi, P_mim1_mi, nothing, x)
-			# cache[2] = P_mi_mip1
-			P_mi_lim2 = zero(x)
-			P_mi_lim1 = cache[1]
-			P_mi_li = Plm_recursion(eltype(cache), mi + 1, mi, P_mi_lim1, P_mi_lim2, x)
-			cache[2] = P_mi_li
-
-			for li in mi+2:min(l, l - m + mi)
-				P_mi_lim2 = cache[li - mi - 1]
-				P_mi_lim1 = cache[li - mi]
-				P_mi_li = Plm_recursion(eltype(cache), li, mi, P_mi_lim1, P_mi_lim2, x)
-				cache[li - mi + 1] = P_mi_li
-			end
-		end
-	end
-	nothing
+    p = convert(T, one(n))
+    for i in n:-2:1
+        p *= convert(T, i)
+    end
+    convert(T, p)
 end
 
 """
-	Plm(x, l::Integer, m::Integer, [cache::AbstractVector])
+    Plm(x, l::Integer, m::Integer; norm = Val(:standard))
 
-Compute the associatedLegendre polynomial ``P_\\ell^m(x)``.
-Optionally a pre-allocated vector `cache` may be provided, which must have a minimum length of `l - m + 1`
-and may be overwritten during the computation.
-
-The polynomials are defined to include the Condon-Shortley phase ``(-1)^m``.
+Compute the associatedLegendre polynomial ``P_\\ell,m(x)``.
+Optionally, the `norm` may be set to `Val(:normalized)`, in which case normalized
+associated Legendre polynomials are evaluated.
 
 The coefficient `m` must be non-negative. For `m == 0` this function just returns
 Legendre polynomials.
@@ -242,71 +289,64 @@ julia> Plm(0.5, 4, 0) == Pl(0.5, 4)
 true
 ```
 """
-Base.@propagate_inbounds function Plm(x, l::Integer, m::Integer,
-	A = begin
-		_checkvalues_m(x, l, m)
-		# do not allocate A if the value is trivially zero
-		if l < m
-			return zero(polytype(x))
-		end
-		zeros(polytype(x), l - m + 1)
-	end
-	)
+function Plm(x, l::Integer, m::Integer; norm = Val(:standard))
+    _checkvalues(x, l, m, 0)
+    if l < m
+        return zero(polytype(x))
+    end
+    # special cases
+    T = polytype(x)
 
-	_checkvalues_m(x, l, m)
-	# check if the value is trivially zero in case A is provided in the function call
-	if l < m
-		return zero(eltype(A))
-	end
+    lT, mT = promote(l, m)
 
-	cache = OffsetArrays.no_offset_view(A)
-	# function barrier, as no_offset_view may be type-unstable
-	_unsafePlm!(cache, x, l, m)
-
-	return cache[l - m + 1]
+    iter_full = LegendrePolynomialIterator(x, lT, mT)
+    iter = Iterators.drop(iter_full, length(iter_full) - 1)
+    Plm = only(iter)
+    return maybenormalize(Plm, lT, mT, norm)
 end
 
-function _checkvalues(x, l, n)
-	assertnonnegative(l)
-	checkdomain(x)
-	n >= 0 || throw(ArgumentError("order of derivative n must be >= 0"))
+function _checkvalues(x, l, m, n)
+    checkdomain(x)
+    assertnonnegative(l)
+    checklm(l, m)
+    n >= 0 || throw(ArgumentError("order of derivative n must be >= 0"))
 end
 
 Base.@propagate_inbounds function _unsafednPl!(cache, x, l, n)
-	# unsafe, assumes 1-based indexing
-	checklength(cache, l - n + 1)
-	if n == l # may short-circuit this
-		cache[1] = doublefactorial(eltype(cache), 2l-1)
-	else
-		collectPl!(cache, x, lmax = l - n)
+    # unsafe, assumes 1-based indexing
+    checklength(cache, l - n + 1)
+    if n == l # may short-circuit this
+        cache[1] = doublefactorial(eltype(cache), 2l-1)
+    else
+        collectPl!(cache, x, lmax = l - n)
 
-		for ni in 1:n
-			# We denote the terms as P_ni_li
+        for ni in 1:n
+            # We denote the terms as P_ni_li
 
-			# li == ni
-			P_nim1_nim1 = cache[1]
-			P_ni_ni = dPl_recursion(eltype(cache), ni, ni, nothing, P_nim1_nim1, nothing, x)
-			cache[1] = P_ni_ni
+            # li == ni
+            P_nim1_nim1 = cache[1]
+            P_ni_ni = dPl_recursion(eltype(cache), ni, ni, nothing, P_nim1_nim1, nothing, x)
+            cache[1] = P_ni_ni
 
-			# li == ni + 1
-			P_nim1_ni = cache[2]
-			P_ni_nip1 = dPl_recursion(eltype(cache), ni + 1, ni, P_ni_ni, P_nim1_ni, nothing, x)
-			cache[2] = P_ni_nip1
+            # li == ni + 1
+            P_nim1_ni = cache[2]
+            P_ni_nip1 = dPl_recursion(eltype(cache), ni + 1, ni, P_ni_ni, P_nim1_ni, nothing, x)
+            cache[2] = P_ni_nip1
 
-			for li in ni+2:min(l, l - n + ni)
-				P_ni_lim2 = cache[li - ni - 1]
-				P_ni_lim1 = cache[li - ni]
-				P_nim1_lim1 = cache[li - ni + 1]
-				P_ni_li = dPl_recursion(eltype(cache), li, ni, P_ni_lim1, P_nim1_lim1, P_ni_lim2, x)
-				cache[li - ni + 1] = P_ni_li
-			end
-		end
-	end
-	nothing
+            for li in ni+2:min(l, l - n + ni)
+                P_ni_lim2 = cache[li - ni - 1]
+                P_ni_lim1 = cache[li - ni]
+                P_nim1_lim1 = cache[li - ni + 1]
+                P_ni_li = dPl_recursion(eltype(cache), li, ni, P_ni_lim1, P_nim1_lim1, P_ni_lim2, x)
+                cache[li - ni + 1] = P_ni_li
+            end
+        end
+    end
+    nothing
 end
 
 """
-	dnPl(x, l::Integer, n::Integer, [cache::AbstractVector])
+    dnPl(x, l::Integer, n::Integer, [cache::AbstractVector])
 
 Compute the ``n``-th derivative ``d^n P_\\ell(x)/dx^n`` of the Legendre polynomial ``P_\\ell(x)``.
 Optionally a pre-allocated vector `cache` may be provided, which must have a minimum length of `l - n + 1`
@@ -326,31 +366,31 @@ true
 ```
 """
 Base.@propagate_inbounds function dnPl(x, l::Integer, n::Integer,
-	A = begin
-		_checkvalues(x, l, n)
-		# do not allocate A if the value is trivially zero
-		if l < n
-			return zero(polytype(x))
-		end
-		zeros(polytype(x), l - n + 1)
-	end
-	)
+    A = begin
+        _checkvalues(x, l, 0, n)
+        # do not allocate A if the value is trivially zero
+        if l < n
+            return zero(polytype(x))
+        end
+        zeros(polytype(x), l - n + 1)
+    end
+    )
 
-	_checkvalues(x, l, n)
-	# check if the value is trivially zero in case A is provided in the function call
-	if l < n
-		return zero(eltype(A))
-	end
+    _checkvalues(x, l, 0, n)
+    # check if the value is trivially zero in case A is provided in the function call
+    if l < n
+        return zero(eltype(A))
+    end
 
-	cache = OffsetArrays.no_offset_view(A)
-	# function barrier, as no_offset_view may be type-unstable
-	_unsafednPl!(cache, x, l, n)
+    cache = OffsetArrays.no_offset_view(A)
+    # function barrier, as no_offset_view may be type-unstable
+    _unsafednPl!(cache, x, l, n)
 
-	return cache[l - n + 1]
+    return cache[l - n + 1]
 end
 
 """
-	collectPl!(v::AbstractVector, x; [lmax::Integer = length(v) - 1])
+    collectPl!(v::AbstractVector, x; [lmax::Integer = length(v) - 1], [norm = Val(:standard)])
 
 Compute the Legendre Polynomials ``P_\\ell(x)`` for the argument `x` and all degrees `l` in `0:lmax`,
 and store them in `v`.
@@ -379,20 +419,26 @@ julia> collectPl!(v, 0.5, lmax = 3) # only l from 0 to 3 are populated
   0.0
 ```
 """
-function collectPl!(v::AbstractVector, x; lmax::Integer  = length(v) - 1)
-	checklength(v, lmax + 1)
+function collectPl!(v::AbstractVector, x; lmax::Integer  = length(v) - 1, norm = Val(:standard))
+    assertnonnegative(lmax)
+    checklm(lmax, 0)
+    n = lmax + 1
+    checklength(v, n)
 
-	iter = LegendrePolynomialIterator(x, lmax)
+    iter = LegendrePolynomialIterator(x, lmax)
 
-	for (l, Pl) in pairs(iter)
-		v[l + firstindex(v)] = Pl
-	end
+    inds = (firstindex(v)-1) .+ (1:n)
+    v_section = @view v[inds]
 
-	v
+    for (ind, (l, Plm)) in enumerate(pairs(iter))
+        v_section[ind] = maybenormalize(Plm, l, norm)
+    end
+
+    return v
 end
 
 """
-	collectPl(x; lmax::Integer)
+    collectPl(x; lmax::Integer, [norm = Val(:standard)])
 
 Compute the Legendre Polynomial ``P_\\ell(x)`` for the argument `x` and all degrees `l` in `0:lmax`.
 Return `P` with indices `0:lmax`, where `P[l] == Pl(x,l)`
@@ -408,19 +454,21 @@ julia> collectPl(0.5, lmax = 4)
  -0.2890625
 ```
 """
-collectPl(x; lmax::Integer) = collect(LegendrePolynomialIterator(x, lmax))
+function collectPl(x; lmax::Integer, norm = Val(:standard))
+    collectPlm(x; lmax = lmax, m = 0, norm = norm,
+        Tnorm = promote_type(Float64, float(typeof(lmax))))
+end
 
 """
-	collectPlm(x; lmax::Integer, m::Integer)
+    collectPlm(x; lmax::Integer, m::Integer, [norm = Val(:standard)])
 
-Compute the associated Legendre Polynomial ``P_\\ell^m(x)`` for the argument `x` and all degrees `l = 0:lmax`.
-The polynomials for `l < m` are defined to be zero.
+Compute the associated Legendre Polynomial ``P_\\ell,m(x)`` for the argument `x` and all degrees `l = 0:lmax`.
 
 The polynomials are defined to include the Condon-Shortley phase ``(-1)^m``.
 
 The coefficient `m` must be greater than or equal to zero.
 
-Returns `v` with indices `0:lmax`, where `v[l] == Plm(x, l, m)`.
+Returns `v` with indices `m:lmax`, where `v[l] == Plm(x, l, m)`.
 
 # Examples
 
@@ -433,23 +481,26 @@ julia> collectPlm(0.5, lmax = 3, m = 2)
  5.625
 ```
 """
-function collectPlm(x; lmax::Integer, m::Integer)
-	assertnonnegative(lmax)
-	m >= 0 || throw(ArgumentError("coefficient m must be >= 0"))
-	v = zeros(polytype(x), 0:lmax)
-	if lmax >= m
-		collectPlm!(parent(v), x; lmax = lmax, m = m)
-	end
-	v
+function collectPlm(x; lmax::Integer, m::Integer, norm = Val(:standard),
+        Tnorm = begin
+            norm === Val(:standard) ? begin
+            _checkvalues(x, lmax, m, 0)
+            typeof(plm_norm(lmax, m))
+            end : float(promote_type(typeof(m), typeof(lmax)))
+        end
+        )
+    _checkvalues(x, lmax, m, 0)
+    T = promote_type(polytype(x), Tnorm)
+    v = zeros(T, m:lmax)
+    collectPlm!(parent(v), x; lmax = lmax, m = m, norm = norm)
+    v
 end
 
 """
-	collectPlm!(v::AbstractVector, x; lmax::Integer, m::Integer)
+    collectPlm!(v::AbstractVector, x; lmax::Integer, m::Integer, [norm = Val(:standard)])
 
-Compute the associated Legendre Polynomial ``P_\\ell^m(x)`` for the argument `x` and all degrees `l = 0:lmax`,
-and store the result in `v`. The polynomials for `l < m` are defined to be zero.
-
-The polynomials are defined to include the Condon-Shortley phase ``(-1)^m``.
+Compute the associated Legendre Polynomial ``P_\\ell,m(x)`` for the argument `x` and all degrees `l = 0:lmax`,
+and store the result in `v`.
 
 The coefficient `m` must be greater than or equal to zero.
 
@@ -468,21 +519,27 @@ julia> collectPlm!(v, 0.5, lmax = 3, m = 2)
  5.625
 ```
 """
-function collectPlm!(v, x; lmax::Integer, m::Integer)
-	assertnonnegative(lmax)
-	m >= 0 || throw(ArgumentError("coefficient m must be >= 0"))
-	checklength(v, lmax + 1)
+function collectPlm!(v, x; m::Integer, lmax::Integer = length(v) - m + 1, norm = Val(:standard))
+    assertnonnegative(lmax)
+    m >= 0 || throw(ArgumentError("coefficient m must be >= 0"))
+    checklm(lmax, m)
+    n = lmax - m + 1
+    checklength(v, n)
 
-	# trivially zero for l < m
-	fill!((@view v[(0:m-1) .+ firstindex(v)]), zero(eltype(v)))
-	# populate the other elements
-	@inbounds Plm(x, lmax, m, @view v[(m:lmax) .+ firstindex(v)])
+    iter = LegendrePolynomialIterator(x, lmax, m)
 
-	v
+    inds = (firstindex(v)-1) .+ (1:n)
+    v_section = @view v[inds]
+
+    for (ind, (l, Plm)) in enumerate(pairs(iter))
+        v_section[ind] = maybenormalize(Plm, l, m, norm)
+    end
+
+    return v
 end
 
 """
-	collectdnPl(x; lmax::Integer, n::Integer)
+    collectdnPl(x; lmax::Integer, n::Integer)
 
 Compute the ``n``-th derivative of a Legendre Polynomial ``P_\\ell(x)`` for the argument `x` and all degrees `l = 0:lmax`.
 
@@ -502,17 +559,17 @@ julia> collectdnPl(0.5, lmax = 3, n = 2)
 ```
 """
 function collectdnPl(x; lmax::Integer, n::Integer)
-	assertnonnegative(lmax)
-	n >= 0 || throw(ArgumentError("order of derivative n must be >= 0"))
-	v = zeros(polytype(x), 0:lmax)
-	if lmax >= n
-		collectdnPl!(parent(v), x; lmax = lmax, n = n)
-	end
-	v
+    assertnonnegative(lmax)
+    n >= 0 || throw(ArgumentError("order of derivative n must be >= 0"))
+    v = zeros(polytype(x), 0:lmax)
+    if lmax >= n
+        collectdnPl!(parent(v), x; lmax = lmax, n = n)
+    end
+    v
 end
 
 """
-	collectdnPl!(v::AbstractVector, x; lmax::Integer, n::Integer)
+    collectdnPl!(v::AbstractVector, x; lmax::Integer, n::Integer)
 
 Compute the ``n``-th derivative of a Legendre Polynomial ``P_\\ell(x)`` for the argument `x` and all degrees `l = 0:lmax`,
 and store the result in `v`.
@@ -535,16 +592,16 @@ julia> collectdnPl!(v, 0.5, lmax = 3, n = 2)
 ```
 """
 function collectdnPl!(v, x; lmax::Integer, n::Integer)
-	assertnonnegative(lmax)
-	n >= 0 || throw(ArgumentError("order of derivative n must be >= 0"))
-	checklength(v, lmax + 1)
+    assertnonnegative(lmax)
+    n >= 0 || throw(ArgumentError("order of derivative n must be >= 0"))
+    checklength(v, lmax + 1)
 
-	# trivially zero for l < n
-	fill!((@view v[(0:n-1) .+ firstindex(v)]), zero(eltype(v)))
-	# populate the other elements
-	@inbounds dnPl(x, lmax, n, @view v[(n:lmax) .+ firstindex(v)])
+    # trivially zero for l < n
+    fill!((@view v[(0:n-1) .+ firstindex(v)]), zero(eltype(v)))
+    # populate the other elements
+    @inbounds dnPl(x, lmax, n, @view v[(n:lmax) .+ firstindex(v)])
 
-	v
+    v
 end
 
 end
