@@ -10,13 +10,15 @@ SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 Aqua = "0.5"
 HyperDualNumbers = "4"
 OffsetArrays = "1"
+QuadGK = "2"
 SpecialFunctions = "2.1"
 julia = "1.6"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 HyperDualNumbers = "50ceba7f-c3ee-5a84-a6e8-3ad40456ec97"
+QuadGK = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "HyperDualNumbers", "Test"]
+test = ["Aqua", "HyperDualNumbers", "Test", "QuadGK"]

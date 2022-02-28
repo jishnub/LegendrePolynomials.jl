@@ -13,6 +13,7 @@ export dnPl
 export collectdnPl
 export collectdnPl!
 
+# cache values of logfactorial to avoid expensive calls
 const lfdictInt = Vector{Dict{Int, Float64}}()
 const lfdictBigInt = Vector{Dict{BigInt, BigFloat}}()
 

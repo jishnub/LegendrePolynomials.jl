@@ -3,6 +3,7 @@ using LegendrePolynomials
 using OffsetArrays
 using HyperDualNumbers
 using Aqua
+using QuadGK
 
 @info "nthreads: $(Threads.nthreads())"
 
@@ -215,5 +216,29 @@ end
         @test sum(collectPl(x, lmax = lmax)) >= 0
         @test sum(collectPlm(x, lmax = lmax, m = 0)) >= 0
         @test sum(collectdnPl(x, lmax = lmax, n = 0)) >= 0
+    end
+end
+
+@testset "norm" begin
+    @testset "Pl" begin
+        for l in 0:4
+            f = x -> Pl(x, l, norm = Val(:normalized))^2
+            I, E = quadgk(f, -1, 1, rtol=1e-2)
+            @test I ≈ 1 rtol=1e-2 atol=E
+
+            f = x -> Pl(x, l, norm = Val(:standard))^2
+            I, E = quadgk(f, -1, 1, rtol=1e-2)
+            @test I ≈ 2/(2l+1) rtol=1e-2 atol=E
+        end
+    end
+    @testset "Plm" begin
+        for m in 0:4, l in m:4
+            f = x -> Plm(x, l, m, norm = Val(:normalized))^2
+            I, E = quadgk(f, -1, 1, rtol=1e-2)
+            @test I ≈ 1 rtol=1e-2 atol=E
+            f = x -> Plm(x, l, m, norm = Val(:standard))^2
+            I, E = quadgk(f, -1, 1, rtol=1e-2)
+            @test I ≈ (2/(2l+1)*factorial(l+m)/factorial(l-m)) rtol=1e-2 atol=E
+        end
     end
 end
