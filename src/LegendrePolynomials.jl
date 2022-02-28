@@ -74,8 +74,6 @@ function plm_norm(l, m)
     t = logplm_norm(l, m)
     _maybebigexp(t)
 end
-normtype(l, m, x, ::Val{:normalized}) = polytype(x)
-normtype(l, m, x, ::Val{:standard}) = typeof(plm_norm(l, m))
 function logabspll_prefactor(l, T = typeof(l))
     lT = T(l)
     a = (logfactorial(2lT-1) + log(2lT+1) - log(lT))/2
@@ -118,6 +116,7 @@ end
 Base.eltype(::Type{<:LegendrePolynomialIterator{T}}) where {T} = T
 Base.IteratorSize(::Type{<:LegendrePolynomialIterator{<:Any,Nothing}}) = Base.IsInfinite()
 
+# starting value, l == 0 for m == 0
 function Base.iterate(iter::LegendrePolynomialIterator{T,<:Any,<:Nothing}) where {T}
     Pl = one(T)
     Plm1 = zero(T)
@@ -225,14 +224,6 @@ julia> Pl(0.5, 20, norm = Val(:normalized))
 """
 function Pl(x, l::Integer; norm = Val(:standard))
     _checkvalues(x, l, 0, 0)
-    T = polytype(x)
-    if x == 1
-        return one(T)
-    elseif x == -1
-        return convert(T, neg1pow(l))
-    elseif x == 0 && isodd(l)
-        return zero(T)
-    end
     iter_full = LegendrePolynomialIterator(x, l)
     iter = Iterators.drop(iter_full, length(iter_full) - 1)
     Pl = only(iter)
@@ -269,14 +260,7 @@ true
 """
 function Plm(x, l::Integer, m::Integer; norm = Val(:standard))
     _checkvalues(x, l, m, 0)
-    if l < m
-        return zero(polytype(x))
-    end
-    # special cases
-    T = polytype(x)
-
     lT, mT = promote(l, m)
-
     iter_full = LegendrePolynomialIterator(x, lT, mT)
     iter = Iterators.drop(iter_full, length(iter_full) - 1)
     Plm = only(iter)
