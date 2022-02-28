@@ -218,7 +218,7 @@ end
 """
     Plm(x, l::Integer, m::Integer; [norm = Val(:standard)])
 
-Compute the associated Legendre polynomial ``P_\\ell^m(x)`` for a non-negative ``m``.
+Compute the associated Legendre polynomial ``P_\\ell^m(x)`` for degree `l` and a non-negative order ``m``.
 Optionally, the `norm` may be set to `Val(:normalized)`, in which case normalized
 associated Legendre polynomials are evaluated. These have an L2 norm of `1`.
 
@@ -329,9 +329,9 @@ Base.@propagate_inbounds function dnPl(x, l::Integer, n::Integer,
 end
 
 """
-    collectPl!(v::AbstractVector, x; [lmax::Integer = length(v) - 1], [norm = Val(:standard)])
+    collectPl!(v::AbstractVector, x; [lmin::Integer = 0], [lmax::Integer = length(v) - 1 + lmin], [norm = Val(:standard)])
 
-Compute the Legendre Polynomials ``P_\\ell(x)`` for the argument `x` and all degrees `l` in `0:lmax`,
+Compute the Legendre Polynomials ``P_\\ell(x)`` for the argument `x` and degrees `l = lmin:lmax`,
 and store them in `v`.
 
 At output `v[firstindex(v) + l] == Pl(x,l)`.
@@ -361,18 +361,20 @@ julia> collectPl!(v, 0.5, lmax = 3) # only l from 0 to 3 are populated
   0.0
 ```
 """
-function collectPl!(v::AbstractVector, x; lmax::Integer  = length(v) - 1, norm = Val(:standard))
-    _checkvalues(x, lmax, 0, 0)
-    n = lmax + 1
+function collectPl!(v::AbstractVector, x; lmin::Integer = 0,
+        lmax::Integer  = length(v) - 1 + lmin, norm = Val(:standard))
+    _checkvalues(x, lmin, 0, 0)
+    lmin <= lmax || throw(ArgumentError("lmin must be less than or equal to lmax"))
+    n = lmax - lmin + 1
     checklength(v, n)
 
-    iter = Iterators.take(LegendrePolynomialIterator(x), lmax + 1)
+    iter = Iterators.take(Iterators.drop(LegendrePolynomialIterator(x), lmin), n)
 
     inds = (firstindex(v)-1) .+ (1:n)
     v_section = @view v[inds]
 
     for (ind, Pl) in enumerate(iter)
-        l = ind - 1
+        l = ind - 1 + lmin
         v_section[ind] = maybenormalize(Pl, l, norm)
     end
 
@@ -380,10 +382,10 @@ function collectPl!(v::AbstractVector, x; lmax::Integer  = length(v) - 1, norm =
 end
 
 """
-    collectPl(x; lmax::Integer, [norm = Val(:standard)])
+    collectPl(x; lmax::Integer, [lmin::Integer = 0], [norm = Val(:standard)])
 
-Compute the Legendre Polynomial ``P_\\ell(x)`` for the argument `x` and all degrees `l` in `0:lmax`.
-Return `P` with indices `0:lmax`, where `P[l] == Pl(x,l)`
+Compute the Legendre Polynomial ``P_\\ell(x)`` for the argument `x` and degrees `l = lmin:lmax`.
+Return `P` with indices `lmin:lmax`, where `P[l] == Pl(x,l)`
 
 # Examples
 ```jldoctest
@@ -398,24 +400,28 @@ julia> all(l -> v[l] ≈ Pl(0.5, l, norm = Val(:normalized)), 0:4)
 true
 ```
 """
-function collectPl(x; lmax::Integer, norm = Val(:standard))
-    _checkvalues(x, lmax, 0, 0)
-    v_offset = zeros(polytype(x), 0:lmax)
+function collectPl(x; lmax::Integer, lmin::Integer = 0, norm = Val(:standard))
+    _checkvalues(x, lmin, 0, 0)
+    lmin <= lmax || throw(ArgumentError("lmin must be less than or equal to lmax"))
+    Tnorm = promote_type(typeof(lmax), typeof(lmin))
+    T = promote_type(polytype(x), Tnorm)
+    v_offset = OffsetVector{T}(undef, lmin:lmax)
     v = parent(v_offset)
-    collectPl!(v, x; lmax = lmax, norm = norm)
+    collectPl!(v, x; lmax, lmin, norm)
     return v_offset
 end
 
 """
-    collectPlm(x; lmax::Integer, m::Integer, [norm = Val(:standard)])
+    collectPlm(x; m::Integer, lmax::Integer, [lmin::Integer = m], [norm = Val(:standard)])
 
-Compute the associated Legendre Polynomial ``P_\\ell,m(x)`` for the argument `x` and all degrees `l = 0:lmax`.
+Compute the associated Legendre polynomials ``P_\\ell^m(x)`` for the argument `x`,
+degrees `l = lmin:lmax` and a non-negative order `m`.
 
 The polynomials are defined to include the Condon-Shortley phase ``(-1)^m``.
 
 The coefficient `m` must be greater than or equal to zero.
 
-Returns `v` with indices `m:lmax`, where `v[l] == Plm(x, l, m)`.
+Returns `v` with indices `lmin:lmax`, where `v[l] == Plm(x, l, m)`.
 
 # Examples
 
@@ -432,6 +438,7 @@ true
 ```
 """
 function collectPlm(x; lmax::Integer, m::Integer, norm = Val(:standard),
+        lmin::Integer = m,
         Tnorm = begin
             norm === Val(:standard) ? begin
             _checkvalues(x, lmax, m, 0)
@@ -439,22 +446,23 @@ function collectPlm(x; lmax::Integer, m::Integer, norm = Val(:standard),
             end : float(promote_type(typeof(m), typeof(lmax)))
         end
         )
-    _checkvalues(x, lmax, m, 0)
+    _checkvalues(x, lmin, m, 0)
+    lmin <= lmax || throw(ArgumentError("lmin must be less than or equal to lmax"))
     T = promote_type(polytype(x), Tnorm)
-    v = zeros(T, m:lmax)
-    collectPlm!(parent(v), x; lmax = lmax, m = m, norm = norm)
+    v = OffsetVector{T}(undef, lmin:lmax)
+    collectPlm!(parent(v), x; lmin, lmax, m, norm)
     v
 end
 
 """
-    collectPlm!(v::AbstractVector, x; lmax::Integer, m::Integer, [norm = Val(:standard)])
+    collectPlm!(v::AbstractVector, x; m::Integer, [lmin::Integer = m], [lmax::Integer = length(v) - 1 + lmin], [norm = Val(:standard)])
 
-Compute the associated Legendre Polynomial ``P_\\ell,m(x)`` for the argument `x` and all degrees `l = 0:lmax`,
-and store the result in `v`.
+Compute the associated Legendre polynomials ``P_\\ell^m(x)`` for the argument `x`,
+degrees `l = lmin:lmax` and a non-negative order `m`, and store the result in `v`.
 
 The coefficient `m` must be greater than or equal to zero.
 
-At output, `v[l + firstindex(v)] == Plm(x, l, m)` for `l = 0:lmax`.
+At output, `v[l + firstindex(v)] == Plm(x, l, m)` for `l = lmin:lmax`.
 
 # Examples
 
@@ -467,20 +475,22 @@ julia> all(zip(2:3, v)) do (l, vl); vl ≈ Plm(0.5, l, 2); end
 true
 ```
 """
-function collectPlm!(v, x; m::Integer, lmax::Integer = length(v) - m + 1, norm = Val(:standard))
-    assertnonnegative(lmax)
+function collectPlm!(v, x; m::Integer, lmin::Integer = m,
+        lmax::Integer = length(v) - 1 + lmin, norm = Val(:standard))
+
     m >= 0 || throw(ArgumentError("coefficient m must be >= 0"))
-    checklm(lmax, m)
-    n = lmax - m + 1
+    lmin <= lmax || throw(ArgumentError("lmin must be less than or equal to lmax"))
+    checklm(lmin, m)
+    n = lmax - lmin + 1
     checklength(v, n)
 
-    iter = Iterators.take(LegendrePolynomialIterator(x, m), lmax - m + 1)
+    iter = Iterators.take(Iterators.drop(LegendrePolynomialIterator(x, m), lmin - m), n)
 
     inds = (firstindex(v)-1) .+ (1:n)
     v_section = @view v[inds]
 
     for (ind, Plm) in enumerate(iter)
-        l = ind - 1 + m
+        l = ind - 1 + lmin
         v_section[ind] = maybenormalize(Plm, l, m, norm)
     end
 

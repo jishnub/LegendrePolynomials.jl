@@ -78,7 +78,8 @@ julia> dnPl(0.5, 3, 2)
 7.5
 ```
 
-Evaluate all the polynomials for `l` in `0:lmax` as `collectPl(x; lmax)`
+Evaluate the Legendre polynomials for `l` in `lmin:lmax` as `collectPl(x; lmin, lmax)`.
+By default `lmin` is chosen to be `0`, and may be omitted.
 
 ```jldoctest
 julia> collectPl(0.5, lmax = 3)
@@ -89,7 +90,8 @@ julia> collectPl(0.5, lmax = 3)
  -0.4375
 ```
 
-Evaluate all the associated Legendre Polynomials for coefficient `m` as `collectPlm(x; lmax, m)`:
+Evaluate the associated Legendre Polynomials for order `m` and degree `l` in `lmin:lmax`
+as `collectPlm(x; m, lmin, lmax)`. By default `lmin` is chosen to be `m`, and may be omitted.
 
 ```jldoctest
 julia> collectPlm(0.5, lmax = 5, m = 3)

@@ -29,6 +29,15 @@ tohyper(x) = Hyper(x, one(x), one(x), zero(x))
     P2 = @inferred collectPlm(x, lmax = lmax, m = 0, norm = Val(:normalized))
     @test P == P2
 
+    lmin = max(0, lmax - 1)
+    P = @inferred collectPl(x, lmax = lmax, lmin = lmin, norm = Val(:standard))
+    P2 = @inferred T collectPlm(x, lmax = lmax, lmin = lmin, m = 0, norm = Val(:standard))
+    @test P == P2
+
+    P = @inferred collectPl(x, lmax = lmax, lmin = lmin, norm = Val(:normalized))
+    P2 = @inferred collectPlm(x, lmax = lmax, lmin = lmin, m = 0, norm = Val(:normalized))
+    @test P == P2
+
     @testset "x = 0" begin
         for l = 1:2:101
             P1 = @inferred Pl(0, l)
