@@ -4,6 +4,8 @@ using OffsetArrays
 using HyperDualNumbers
 using Aqua
 
+@info "nthreads: $(Threads.nthreads())"
+
 @testset "Project quality assurance" begin
     Aqua.test_all(LegendrePolynomials, ambiguities = false)
 end

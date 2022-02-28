@@ -13,6 +13,20 @@ export dnPl
 export collectdnPl
 export collectdnPl!
 
+const lfdictInt = Vector{Dict{Int, Float64}}()
+const lfdictBigInt = Vector{Dict{BigInt, BigFloat}}()
+
+function __init__()
+    empty!(lfdictInt)
+    empty!(lfdictBigInt)
+    resize!(lfdictInt, Threads.nthreads())
+    resize!(lfdictBigInt, Threads.nthreads())
+    for i in 1:Threads.nthreads()
+        lfdictInt[i] = Dict{Int, Float64}()
+        lfdictBigInt[i] = Dict{BigInt, BigFloat}()
+    end
+end
+
 function checkdomain(x)
     abs(x) > 1 && throw(DomainError(x,
         "Legendre Polynomials are defined for arguments lying in -1 ⩽ x ⩽ 1"))
@@ -57,9 +71,18 @@ end
     convert(T, P_n_l)
 end
 
+# Allow memoization
+_logfactorial(n) = logfactorial(n)
+_logfactorial(n::Int) = get!(lfdictInt[Threads.threadid()], n) do
+                            logfactorial(n)
+                        end
+_logfactorial(n::BigInt) = get!(lfdictBigInt[Threads.threadid()], n) do
+                            logfactorial(n)
+                        end
+
 function logplm_norm(l, m)
     T = promote_type(typeof(l), typeof(m))
-    (log(T(2)) - log(2T(l)+1) + logfactorial(l + m) - logfactorial(l - m))/2
+    (log(T(2)) - log(2T(l)+1) + _logfactorial(l + m) - _logfactorial(l - m))/2
 end
 function _maybebigexp(t)
     if t < log(prevfloat(typemax(t)))
@@ -75,12 +98,12 @@ end
 function logabspll_prefactor(l, T = typeof(l))
     lT = T(l)
     a = (logfactorial(2lT-1) + log(2lT+1) - log(lT))/2
-    b = l*log(T(2)) + logfactorial(lT-1)
+    b = l*log(T(2)) + _logfactorial(lT-1)
     a - b
 end
 neg1pow(l) = iseven(l) ? 1 : -1
 function pll_prefactor(l, T = typeof(l))
-    l == 0 && return sqrt(oftype(logfactorial(T(l)), 1/2))
+    l == 0 && return sqrt(oftype(_logfactorial(T(l)), 1/2))
     t = logabspll_prefactor(l, T)
     neg1pow(l) * exp(t)
 end
@@ -195,7 +218,7 @@ julia> Pl(0.5, 4) ≈ -37/128 # analytically obtained value
 true
 
 julia> Pl(0.5, 20, norm = Val(:normalized))
--0.010680579639558057
+-0.21895188261094017
 ```
 """
 function Pl(x, l::Integer; norm = Val(:standard))
@@ -425,7 +448,7 @@ Returns `v` with indices `lmin:lmax`, where `v[l] == Plm(x, l, m)`.
 !!! note
     In the standard normalization, if the norm of the polynomials may be expressed as a certain
     type without overflow (eg. `Float64`), this may be provided as the optional argument `Tnorm`.
-    In general, this is dynamically inferred.
+    In general, `Tnorm` is dynamically inferred from the order and the degrees that are provided.
 
 # Examples
 
@@ -447,7 +470,7 @@ function collectPlm(x; lmax::Integer, m::Integer, norm = Val(:standard),
             norm === Val(:standard) ? begin
             _checkvalues(x, lmax, m, 0)
             typeof(plm_norm(lmax, m))
-            end : float(promote_type(typeof(m), typeof(lmax)))
+            end : float(mapreduce(typeof, promote_type, (m, lmax, lmin)))
         end
         )
     _checkvalues(x, lmin, m, 0)
@@ -480,7 +503,8 @@ true
 ```
 """
 function collectPlm!(v, x; m::Integer, lmin::Integer = m,
-        lmax::Integer = length(v) - 1 + lmin, norm = Val(:standard))
+        lmax::Integer = length(v) - 1 + lmin,
+        norm = Val(:standard))
 
     m >= 0 || throw(ArgumentError("coefficient m must be >= 0"))
     lmin <= lmax || throw(ArgumentError("lmin must be less than or equal to lmax"))
@@ -488,14 +512,16 @@ function collectPlm!(v, x; m::Integer, lmin::Integer = m,
     n = lmax - lmin + 1
     checklength(v, n)
 
-    iter = Iterators.take(Iterators.drop(LegendrePolynomialIterator(x, m), lmin - m), n)
+    lminT, lmaxT, mT = promote(lmin, lmax, m)
+    iter = Iterators.drop(LegendrePolynomialIterator(x, mT), lmin - m)
 
     inds = (firstindex(v)-1) .+ (1:n)
     v_section = @view v[inds]
 
     for (ind, Plm) in enumerate(iter)
-        l = ind - 1 + lmin
-        v_section[ind] = maybenormalize(Plm, l, m, norm)
+        l = ind - 1 + lminT
+        v_section[ind] = maybenormalize(Plm, l, mT, norm)
+        ind == n && break
     end
 
     return v
