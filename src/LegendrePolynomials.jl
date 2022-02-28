@@ -202,7 +202,7 @@ end
 maybenormalize(P, l, m, norm::Val) = throw(ArgumentError("norm = $norm undefined, valid norms are :standard and :normalized"))
 
 """
-    Pl(x, l::Integer; norm = Val(:standard))
+    Pl(x, l::Integer; [norm = Val(:standard)])
 
 Compute the Legendre Polynomial ``P_\\ell(x)`` for the argument `x` and the degree `l`.
 
@@ -216,8 +216,8 @@ These have an L2 norm of `1`.
 julia> Pl(1, 2)
 1.0
 
-julia> Pl(0.5, 20)
--0.04835838106737356
+julia> Pl(0.5, 4) ≈ -37/128
+true
 
 julia> Pl(0.5, 20, norm = Val(:normalized))
 -0.010680579639558057
@@ -230,10 +230,13 @@ function Pl(x, l::Integer; norm = Val(:standard))
         return one(T)
     elseif x == -1
         return convert(T, neg1pow(l))
-    elseif x == 0.5 && isodd(l)
+    elseif x == 0 && isodd(l)
         return zero(T)
     end
-    Plm(x, l, 0; norm = norm)::T
+    iter_full = LegendrePolynomialIterator(x, l)
+    iter = Iterators.drop(iter_full, length(iter_full) - 1)
+    Pl = only(iter)
+    return maybenormalize(Pl, l, norm)
 end
 
 function doublefactorial(T, n)
@@ -245,7 +248,7 @@ function doublefactorial(T, n)
 end
 
 """
-    Plm(x, l::Integer, m::Integer; norm = Val(:standard))
+    Plm(x, l::Integer, m::Integer; [norm = Val(:standard)])
 
 Compute the associatedLegendre polynomial ``P_\\ell,m(x)``.
 Optionally, the `norm` may be set to `Val(:normalized)`, in which case normalized
@@ -257,8 +260,8 @@ Legendre polynomials.
 # Examples
 
 ```jldoctest
-julia> Plm(0.5, 3, 2)
-5.625
+julia> Plm(0.5, 3, 2) ≈ 45/8
+true
 
 julia> Plm(0.5, 4, 0) == Pl(0.5, 4)
 true
@@ -376,12 +379,17 @@ At output `v[firstindex(v) + l] == Pl(x,l)`.
 ```jldoctest
 julia> v = zeros(4);
 
-julia> collectPl!(v, 0.5)
-4-element Vector{Float64}:
-  1.0
-  0.5
- -0.125
- -0.4375
+julia> collectPl!(v, 0.5);
+
+julia> all(((l,vl),) -> vl ≈ Pl(0.5, l), zip(0:3, v))
+true
+
+julia> collectPl!(v, 0.5, norm = Val(:normalized));
+
+julia> all(((l,vl),) -> vl ≈ Pl(0.5, l, norm = Val(:normalized)), zip(0:3, v))
+true
+
+julia> using OffsetArrays
 
 julia> v = zeros(0:4);
 
@@ -419,13 +427,15 @@ Return `P` with indices `0:lmax`, where `P[l] == Pl(x,l)`
 
 # Examples
 ```jldoctest
-julia> collectPl(0.5, lmax = 4)
-5-element OffsetArray(::Vector{Float64}, 0:4) with eltype Float64 with indices 0:4:
-  1.0
-  0.5
- -0.125
- -0.4375
- -0.2890625
+julia> v = collectPl(0.5, lmax = 4);
+
+julia> all(l -> v[l] ≈ Pl(0.5, l), 0:4)
+true
+
+julia> v = collectPl(0.5, lmax = 4, norm = Val(:normalized));
+
+julia> all(l -> v[l] ≈ Pl(0.5, l, norm = Val(:normalized)), 0:4)
+true
 ```
 """
 function collectPl(x; lmax::Integer, norm = Val(:standard))
@@ -450,12 +460,15 @@ Returns `v` with indices `m:lmax`, where `v[l] == Plm(x, l, m)`.
 # Examples
 
 ```jldoctest
-julia> collectPlm(0.5, lmax = 3, m = 2)
-4-element OffsetArray(::Vector{Float64}, 0:3) with eltype Float64 with indices 0:3:
- 0.0
- 0.0
- 2.25
- 5.625
+julia> v = collectPlm(0.5, lmax = 3, m = 2);
+
+julia> all(l -> v[l] ≈ Plm(0.5, l, 2), 2:3)
+true
+
+julia> v = collectPlm(0.5, lmax = 3, m = 2, norm = Val(:normalized));
+
+julia> all(l -> v[l] ≈ Plm(0.5, l, 2, norm = Val(:normalized)), 2:3)
+true
 ```
 """
 function collectPlm(x; lmax::Integer, m::Integer, norm = Val(:standard),
@@ -486,14 +499,12 @@ At output, `v[l + firstindex(v)] == Plm(x, l, m)` for `l = 0:lmax`.
 # Examples
 
 ```jldoctest
-julia> v = zeros(4);
+julia> v = zeros(2);
 
-julia> collectPlm!(v, 0.5, lmax = 3, m = 2)
-4-element Vector{Float64}:
- 0.0
- 0.0
- 2.25
- 5.625
+julia> collectPlm!(v, 0.5, lmax = 3, m = 2);
+
+julia> all(((l, vl),) -> vl ≈ Plm(0.5, l, 2), zip(2:3, v))
+true
 ```
 """
 function collectPlm!(v, x; m::Integer, lmax::Integer = length(v) - m + 1, norm = Val(:standard))

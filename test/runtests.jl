@@ -170,7 +170,7 @@ end
     P = eps1.(collectPl(xh, lmax = lmax))
     P2 = collectPlm(x, lmax = lmax, m = 1) / (- sqrt(1 - x^2))
     P3 = collectdnPl(x, lmax = lmax, n = 1)
-    @test P[1] == P2[1] == P3[1] == 1
+    @test P[1] ≈ P2[1] ≈ P3[1] ≈ 1
     @test P[2] ≈ P2[2] ≈ P3[2] ≈ 3x
     @test P[3] ≈ P2[3] ≈ P3[3] ≈ (-3 + 15x^2)/2
     @test P[4] ≈ P2[4] ≈ P3[4] ≈ 1/8*(-60x + 140x^3)

@@ -11,7 +11,7 @@ Iterative computation of Legendre Polynomials
 
 ## Installing
 
-To install the package, run 
+To install the package, run
 
 ```julia
 ] add LegendrePolynomials
@@ -57,13 +57,10 @@ To compute all the associated Legendre polynomials for `0 <= l <= lmax`, use `co
 
 ```julia
 julia> collectPlm(0.5, lmax = 5, m = 3)
-6-element OffsetArray(::Vector{Float64}, 0:5) with eltype Float64 with indices 0:5:
-   0.0
-   0.0
-   0.0
+3-element OffsetArray(::Vector{Float64}, 3:5) with eltype Float64 with indices 3:5:
   -9.742785792574933
- -34.099750274012266
- -42.62468784251533
+ -34.09975027401223
+ -42.62468784251535
 ```
 
 To compute all the n-th derivatives for `0 <= l <= lmax`, use `collectdnPl(x; n, lmax)`

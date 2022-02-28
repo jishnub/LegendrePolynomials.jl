@@ -13,10 +13,25 @@ Compute [Legendre polynomials](https://en.wikipedia.org/wiki/Legendre_polynomial
 P_\ell(x) = \left((2\ell-1) x P_{\ell-1}(x) - (\ell-1)P_{\ell - 2}(x)\right)/\ell
 ```
 
-Currently this package evaluates the standard polynomials that satisfy ``P_\ell(1) = 1`` and ``P_0(x) = 1``. These are normalized as
+By default this package evaluates the standard polynomials that satisfy ``P_\ell(1) = 1`` and ``P_0(x) = 1``. These are normalized as
 
 ```math
 \int_{-1}^1 P_m(x) P_n(x) dx = \frac{2}{2n+1} \delta_{mn}.
+```
+
+Optionally, normalized polynomials may be evaluated that have an L2 norm of `1`.
+
+Analogous to Legendre polynomials, one may evaluate associated Legendre polynomials using a 3-term recursion relation. This is evaluated by iterating over the normalized associated Legendre functions, and multiplying the norm at the final stage. Such an iteration avoids floating-point overflow.
+
+The relation used in evaluating associated Legendre polynomials is
+
+```math
+\bar{P}_{\ell}^{m}\left(x\right)=\alpha_{\ell m}\left(x\bar{P}_{\ell-1}^{m}\left(x\right)-\frac{1}{\alpha_{\ell-1m}}\bar{P}_{\ell-2}^{m}\left(x\right)\right),
+```
+
+where
+```math
+\alpha_{\ell m}=\sqrt{\frac{\left(2\ell+1\right)\left(2\ell-1\right)}{\left(\ell-m\right)\left(\ell+m\right)}},
 ```
 
 There are six main functions:
@@ -33,15 +48,21 @@ There are six main functions:
 Evaluate the Legendre polynomial for one `l` at an argument`x` as `Pl(x, l)`:
 
 ```jldoctest
-julia> Pl(0.5, 3)
+julia> p = Pl(0.5, 3)
 -0.4375
+
+julia> p ≈ -7/16 # analytical value
+true
 ```
 
 Evaluate the associated Legendre Polynomial one `l,m` pair as `Plm(x, l, m)`:
 
 ```jldoctest
-julia> Plm(0.5, 3, 2)
-5.625
+julia> p = Plm(0.5, 3, 2)
+5.624999999999997
+
+julia> p ≈ 45/8 # analytical value
+true
 ```
 
 Evaluate the `n`th derivative for one `l` as `dnPl(x, l, n)`:
@@ -66,13 +87,10 @@ Evaluate all the associated Legendre Polynomials for coefficient `m` as `collect
 
 ```jldoctest
 julia> collectPlm(0.5, lmax = 5, m = 3)
-6-element OffsetArray(::Vector{Float64}, 0:5) with eltype Float64 with indices 0:5:
-   0.0
-   0.0
-   0.0
+3-element OffsetArray(::Vector{Float64}, 3:5) with eltype Float64 with indices 3:5:
   -9.742785792574933
- -34.099750274012266
- -42.62468784251533
+ -34.09975027401223
+ -42.62468784251535
 ```
 
 Evaluate all the `n`th derivatives as `collectdnPl(x; lmax, n)`:
