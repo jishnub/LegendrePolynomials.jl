@@ -18,11 +18,9 @@ function checkdomain(x)
         "Legendre Polynomials are defined for arguments lying in -1 ⩽ x ⩽ 1"))
 end
 
-assertnonnegative(l) = l >= 0 || throw(ArgumentError("l must be >= 0, received " * string(l)))
-assertnonnegative(::Nothing) = nothing
+assertnonnegative(l::Integer) = l >= 0 || throw(ArgumentError("l must be >= 0, received " * string(l)))
 
 checklm(l::Integer, m::Integer) = 0 <= m <= l || throw(ArgumentError("m must satisfy 0 <= m <= l"))
-checklm(::Any, ::Any) = nothing
 
 function checklength(arr, minlength)
     length(arr) >= minlength || throw(ArgumentError(
@@ -91,40 +89,45 @@ function coeff(l, m, T = float(promote_type(typeof(l), typeof(m))))
 end
 
 polytype(x) = float(typeof(x))
+polytype(m::Nothing) = Float64
+polytype(x, m) = promote_type(polytype(x), polytype(m))
 
-struct LegendrePolynomialIterator{T, L<:Union{Integer,Nothing}, M<:Union{Integer, Nothing}, V}
+struct LegendrePolynomialIterator{T, M<:Union{Integer, Nothing}, V}
     x :: V
-    lmax :: L
     m :: M
-    function LegendrePolynomialIterator{T,L,M,V}(x::V, lmax::L, m::M) where {T, L<:Union{Integer,Nothing}, M<:Union{Integer, Nothing}, V}
+    function LegendrePolynomialIterator{T,M,V}(x::V, m::M) where {T, M<:Union{Integer, Nothing}, V}
         checkdomain(x)
-        new{T,L,M,V}(x, lmax, m)
+        new{T,M,V}(x, m)
     end
 end
-LegendrePolynomialIterator(x) = LegendrePolynomialIterator{polytype(x), Nothing, Nothing, typeof(x)}(x, nothing, nothing)
-function LegendrePolynomialIterator(x, lmax::Integer)
-    assertnonnegative(lmax)
-    LegendrePolynomialIterator{polytype(x), typeof(lmax), Nothing, typeof(x)}(x, lmax, nothing)
-end
-function LegendrePolynomialIterator(x, lmax::Integer, m::Integer)
-    assertnonnegative(lmax)
-    checklm(lmax, m)
-    lmaxT, mT = promote(lmax, m)
-    LegendrePolynomialIterator{polytype(x), typeof(lmaxT), typeof(mT), typeof(x)}(x, lmaxT, mT)
+function LegendrePolynomialIterator(x, m::Union{Integer, Nothing} = nothing)
+    LegendrePolynomialIterator{polytype(x, m), typeof(m), typeof(x)}(x, m)
 end
 
 Base.eltype(::Type{<:LegendrePolynomialIterator{T}}) where {T} = T
-Base.IteratorSize(::Type{<:LegendrePolynomialIterator{<:Any,Nothing}}) = Base.IsInfinite()
+Base.IteratorSize(::Type{<:LegendrePolynomialIterator}) = Base.IsInfinite()
 
+# Iteration for Legendre polynomials
 # starting value, l == 0 for m == 0
-function Base.iterate(iter::LegendrePolynomialIterator{T,<:Any,<:Nothing}) where {T}
+function Base.iterate(iter::LegendrePolynomialIterator{T,Nothing}) where {T}
     Pl = one(T)
     Plm1 = zero(T)
     nextstate = (Pl, Plm1, nothing)
     return Pl, (1, nextstate)
 end
+function Base.iterate(iter::LegendrePolynomialIterator{T,Nothing}, state) where {T}
+    l, prevstate = state
+    x = iter.x
+    # standard-norm Bonnet iteration
+    Pl, α = Pl_recursion(T, l, prevstate, x)
+    Plm1 = first(prevstate)
+    nextstate = (Pl, Plm1, α)
+    return Pl, (l+1, nextstate)
+end
+
+# Iteration for associated Legendre polynomials
 # starting value, l == m
-function Base.iterate(iter::LegendrePolynomialIterator{T,<:Any,<:Integer}) where {T}
+function Base.iterate(iter::LegendrePolynomialIterator{T,<:Integer}) where {T}
     m = iter.m
     if m == 0
         Pl = one(T)
@@ -138,22 +141,9 @@ function Base.iterate(iter::LegendrePolynomialIterator{T,<:Any,<:Integer}) where
     α_ℓ_m = Inf
     return Pl, (m+1, (Pl, Plm1, α_ℓ_m))
 end
-_isdone(l, lmax) = l > lmax
-_isdone(::Any, ::Nothing) = false
 
-function Base.iterate(iter::LegendrePolynomialIterator{T,<:Any,Nothing}, state) where {T}
+function Base.iterate(iter::LegendrePolynomialIterator{T,<:Integer}, state) where {T}
     l, prevstate = state
-    _isdone(l, iter.lmax) && return nothing
-    x = iter.x
-    # standard-norm Bonnet iteration
-    Pl, α = Pl_recursion(T, l, prevstate, x)
-    Plm1 = first(prevstate)
-    nextstate = (Pl, Plm1, α)
-    return Pl, (l+1, nextstate)
-end
-function Base.iterate(iter::LegendrePolynomialIterator{T,<:Any,<:Integer}, state) where {T}
-    l, prevstate = state
-    _isdone(l, iter.lmax) && return nothing
     m = iter.m
     x = iter.x
     if m == 0
@@ -167,19 +157,6 @@ function Base.iterate(iter::LegendrePolynomialIterator{T,<:Any,<:Integer}, state
     nextstate = (Pl, Plm1, α_ℓ_m)
     return Pl, (l+1, nextstate)
 end
-
-_length(iter) = _length(iter.lmax, iter.m)
-_length(lmax::Integer, m::Integer) = lmax - m + 1
-_length(lmax::Integer, m::Nothing) = lmax + 1
-_axes1(iter) = _axes1(iter.lmax, iter.m)
-_axes1(lmax::Integer, m::Integer) = m:lmax
-_axes1(lmax::Integer, m::Nothing) = 0:lmax
-Base.length(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = _length(iter)
-Base.size(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = (length(iter),)
-Base.axes(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = (_axes1(iter), )
-Base.keys(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = _axes1(iter)
-
-Base.copy(iter::LegendrePolynomialIterator) = typeof(iter)(iter.x, iter.lmax, iter.m)
 
 maybenormalize(P, l, ::Val{:normalized}) = oftype(P, P * √(2/(2l+1)))
 maybenormalize(P, l, ::Val{:standard}) = P
@@ -224,9 +201,9 @@ julia> Pl(0.5, 20, norm = Val(:normalized))
 """
 function Pl(x, l::Integer; norm = Val(:standard))
     _checkvalues(x, l, 0, 0)
-    iter_full = LegendrePolynomialIterator(x, l)
-    iter = Iterators.drop(iter_full, length(iter_full) - 1)
-    Pl = only(iter)
+    iter_full = LegendrePolynomialIterator(x)
+    iter = Iterators.drop(iter_full, l)
+    Pl = first(iter)
     return maybenormalize(Pl, l, norm)
 end
 
@@ -261,9 +238,9 @@ true
 function Plm(x, l::Integer, m::Integer; norm = Val(:standard))
     _checkvalues(x, l, m, 0)
     lT, mT = promote(l, m)
-    iter_full = LegendrePolynomialIterator(x, lT, mT)
-    iter = Iterators.drop(iter_full, length(iter_full) - 1)
-    Plm = only(iter)
+    iter_full = LegendrePolynomialIterator(x, mT)
+    iter = Iterators.drop(iter_full, l - m)
+    Plm = first(iter)
     return maybenormalize(Plm, lT, mT, norm)
 end
 
@@ -389,12 +366,13 @@ function collectPl!(v::AbstractVector, x; lmax::Integer  = length(v) - 1, norm =
     n = lmax + 1
     checklength(v, n)
 
-    iter = LegendrePolynomialIterator(x, lmax)
+    iter = Iterators.take(LegendrePolynomialIterator(x), lmax + 1)
 
     inds = (firstindex(v)-1) .+ (1:n)
     v_section = @view v[inds]
 
-    for (ind, (l, Pl)) in enumerate(pairs(iter))
+    for (ind, Pl) in enumerate(iter)
+        l = ind - 1
         v_section[ind] = maybenormalize(Pl, l, norm)
     end
 
@@ -496,12 +474,13 @@ function collectPlm!(v, x; m::Integer, lmax::Integer = length(v) - m + 1, norm =
     n = lmax - m + 1
     checklength(v, n)
 
-    iter = LegendrePolynomialIterator(x, lmax, m)
+    iter = Iterators.take(LegendrePolynomialIterator(x, m), lmax - m + 1)
 
     inds = (firstindex(v)-1) .+ (1:n)
     v_section = @view v[inds]
 
-    for (ind, (l, Plm)) in enumerate(pairs(iter))
+    for (ind, Plm) in enumerate(iter)
+        l = ind - 1 + m
         v_section[ind] = maybenormalize(Plm, l, m, norm)
     end
 

@@ -8,33 +8,9 @@ using Aqua
     Aqua.test_all(LegendrePolynomials, ambiguities = false)
 end
 
-import LegendrePolynomials: LegendrePolynomialIterator
-
 tohyper(x) = Hyper(x, one(x), one(x), zero(x))
 
-@testset "LegendrePolynomialIterator" begin
-    lmax = 5
-    iter = LegendrePolynomialIterator(0.5, lmax);
-    @test length(iter) == lmax + 1
-    @test eltype(iter) == Float64
-    @test eltype(typeof(iter)) == Float64
-    @test size(iter) == (lmax+1,)
-    @test axes(iter) == (0:lmax,)
-    @test keys(iter) == 0:lmax
-
-    iter2 = copy(iter)
-    @test typeof(iter2) == typeof(iter)
-    @test iter2.x == iter.x
-    @test iter2.lmax == iter.lmax
-
-    iter = LegendrePolynomialIterator(0.5);
-    @test Base.IteratorSize(typeof(iter)) == Base.IsInfinite()
-
-    @test_throws DomainError LegendrePolynomialIterator(-1.1, lmax)
-    @test_throws DomainError LegendrePolynomialIterator(-1.1)
-end
-
-@testset "Pl" begin
+@testset "Pl and collectPl" begin
 	x = 2rand() - 1
     lmax = 5
     P = @inferred collectPl(x, lmax = lmax)
@@ -170,6 +146,7 @@ end
     P = eps1.(collectPl(xh, lmax = lmax))
     P2 = collectPlm(x, lmax = lmax, m = 1) / (- sqrt(1 - x^2))
     P3 = collectdnPl(x, lmax = lmax, n = 1)
+    @test P[0] == P3[0] == 0
     @test P[1] ≈ P2[1] ≈ P3[1] ≈ 1
     @test P[2] ≈ P2[2] ≈ P3[2] ≈ 3x
     @test P[3] ≈ P2[3] ≈ P3[3] ≈ (-3 + 15x^2)/2
@@ -206,6 +183,8 @@ end
     P2 = collectPlm(x, lmax = lmax, m = 2) / (1 - x^2)
     P3 = collectdnPl(x, lmax = lmax, n = 2)
 
+    @test P[0] == P3[0] == 0
+    @test P[1] == P3[1] == 0
     @test P[2] ≈ P2[2] ≈ P3[2] ≈ 3
     @test P[3] ≈ P2[3] ≈ P3[3] ≈ 15x
     @test P[4] ≈ P2[4] ≈ P3[4] ≈ 1/8*(-60 + 420x^2)
