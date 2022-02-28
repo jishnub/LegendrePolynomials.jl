@@ -129,10 +129,10 @@ end
 # starting value, l == m
 function Base.iterate(iter::LegendrePolynomialIterator{T,<:Integer}) where {T}
     m = iter.m
+    x = iter.x
     if m == 0
         Pl = one(T)
     else
-        x = iter.x
         f = pll_prefactor(m)
         t = f * (√(1-x^2))^m
         Pl = convert(T, t)
@@ -144,13 +144,11 @@ end
 
 function Base.iterate(iter::LegendrePolynomialIterator{T,<:Integer}, state) where {T}
     l, prevstate = state
-    m = iter.m
     x = iter.x
+    m = iter.m
     if m == 0
-        # standard-norm Bonnet iteration
         Pl, α_ℓ_m = Pl_recursion(T, l, prevstate, x)
     else
-        # iterate over normalized functions
         Pl, α_ℓ_m = Plm_recursion(T, l, m, prevstate, x)
     end
     Plm1 = first(prevstate)
@@ -158,8 +156,9 @@ function Base.iterate(iter::LegendrePolynomialIterator{T,<:Integer}, state) wher
     return Pl, (l+1, nextstate)
 end
 
-maybenormalize(P, l, ::Val{:normalized}) = oftype(P, P * √(2/(2l+1)))
+maybenormalize(P, l, ::Val{:normalized}) = oftype(P, P * √((2l+1)/2))
 maybenormalize(P, l, ::Val{:standard}) = P
+maybenormalize(P, l, norm) = throw(ArgumentError("norm = $norm undefined, valid norms are :standard and :normalized"))
 
 function maybenormalize(P, l, m, norm::Val{:normalized})
     if m == 0
@@ -175,7 +174,7 @@ function maybenormalize(P, l, m, norm::Val{:standard})
         return plm_norm(l, m) * P
     end
 end
-maybenormalize(P, l, m, norm::Val) = throw(ArgumentError("norm = $norm undefined, valid norms are :standard and :normalized"))
+maybenormalize(P, l, m, norm) = throw(ArgumentError("norm = $norm undefined, valid norms are :standard and :normalized"))
 
 """
     Pl(x, l::Integer; [norm = Val(:standard)])
@@ -412,7 +411,7 @@ function collectPl(x; lmax::Integer, lmin::Integer = 0, norm = Val(:standard))
 end
 
 """
-    collectPlm(x; m::Integer, lmax::Integer, [lmin::Integer = m], [norm = Val(:standard)])
+    collectPlm(x; m::Integer, lmax::Integer, [lmin::Integer = m], [norm = Val(:standard)], [Tnorm])
 
 Compute the associated Legendre polynomials ``P_\\ell^m(x)`` for the argument `x`,
 degrees `l = lmin:lmax` and a non-negative order `m`.
@@ -422,6 +421,11 @@ The polynomials are defined to include the Condon-Shortley phase ``(-1)^m``.
 The coefficient `m` must be greater than or equal to zero.
 
 Returns `v` with indices `lmin:lmax`, where `v[l] == Plm(x, l, m)`.
+
+!!! note
+    In the standard normalization, if the norm of the polynomials may be expressed as a certain
+    type without overflow (eg. `Float64`), this may be provided as the optional argument `Tnorm`.
+    In general, this is dynamically inferred.
 
 # Examples
 

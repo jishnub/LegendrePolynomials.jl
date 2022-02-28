@@ -13,30 +13,37 @@ tohyper(x) = Hyper(x, one(x), one(x), zero(x))
 @testset "Pl and collectPl" begin
 	x = 2rand() - 1
     lmax = 5
-    P = @inferred collectPl(x, lmax = lmax)
-    T = Union{OffsetVector{Float64, Vector{Float64}}, OffsetVector{BigFloat, Vector{BigFloat}}}
-    P2 = @inferred T collectPlm(x, lmax = lmax, m = 0)
-    P3 = @inferred collectdnPl(x, lmax = lmax, n = 0)
-    @test P[0] == P2[0] == P3[0] == 1
-    @test P[0] == P2[0] == P3[0] == 1
-    @test P[1] == P2[1] == P3[1] == x
-    @test P[2] ≈ P2[2] ≈ P3[2] ≈ (3x^2 - 1)/2
-    @test P[3] ≈ P2[3] ≈ P3[3] ≈ (5x^3 - 3x)/2
-    @test P[4] ≈ P2[4] ≈ P3[4] ≈ (35x^4 - 30x^2 + 3)/8
-    @test P[5] ≈ P2[5] ≈ P3[5] ≈ (63x^5 - 70x^3 + 15x)/8
-
-    P = @inferred collectPl(x, lmax = lmax, norm = Val(:normalized))
-    P2 = @inferred collectPlm(x, lmax = lmax, m = 0, norm = Val(:normalized))
-    @test P == P2
-
     lmin = max(0, lmax - 1)
-    P = @inferred collectPl(x, lmax = lmax, lmin = lmin, norm = Val(:standard))
-    P2 = @inferred T collectPlm(x, lmax = lmax, lmin = lmin, m = 0, norm = Val(:standard))
-    @test P == P2
 
-    P = @inferred collectPl(x, lmax = lmax, lmin = lmin, norm = Val(:normalized))
-    P2 = @inferred collectPlm(x, lmax = lmax, lmin = lmin, m = 0, norm = Val(:normalized))
-    @test P == P2
+    @testset "standard norm" begin
+        P = @inferred collectPl(x, lmax = lmax)
+        T = Union{OffsetVector{Float64, Vector{Float64}}, OffsetVector{BigFloat, Vector{BigFloat}}}
+        P2 = @inferred T collectPlm(x, lmax = lmax, m = 0)
+        P3 = @inferred collectdnPl(x, lmax = lmax, n = 0)
+        @test P[0] ≈ P2[0] ≈ P3[0] ≈ 1
+        @test P[1] ≈ P2[1] ≈ P3[1] ≈ x
+        @test P[2] ≈ P2[2] ≈ P3[2] ≈ (3x^2 - 1)/2
+        @test P[3] ≈ P2[3] ≈ P3[3] ≈ (5x^3 - 3x)/2
+        @test P[4] ≈ P2[4] ≈ P3[4] ≈ (35x^4 - 30x^2 + 3)/8
+        @test P[5] ≈ P2[5] ≈ P3[5] ≈ (63x^5 - 70x^3 + 15x)/8
+
+        Q = @inferred collectPl(x, lmax = lmax, lmin = lmin, norm = Val(:standard))
+        Q2 = @inferred T collectPlm(x, lmax = lmax, lmin = lmin, m = 0, norm = Val(:standard))
+        @test Q ≈ Q2
+        @test @views Q[lmin:lmax] == P[lmin:lmax]
+    end
+
+    @testset "normalized" begin
+        P = @inferred collectPl(x, lmax = lmax, norm = Val(:normalized))
+        Q = @inferred collectPlm(x, lmax = lmax, m = 0, norm = Val(:normalized))
+        @test P ≈ Q
+        @test P[0] ≈ √(1/2)
+
+        P2 = @inferred collectPl(x, lmax = lmax, lmin = lmin, norm = Val(:normalized))
+        Q2 = @inferred collectPlm(x, lmax = lmax, lmin = lmin, m = 0, norm = Val(:normalized))
+        @test P2 ≈ Q2
+        @test @views P2[lmin:lmax] == P[lmin:lmax]
+    end
 
     @testset "x = 0" begin
         for l = 1:2:101
@@ -56,7 +63,7 @@ tohyper(x) = Hyper(x, one(x), one(x), zero(x))
         P = collectPl(1, lmax = lmax)
         @test all(==(1), P)
         P2 = collectPlm(1, lmax = lmax, m = 0)
-        @test all(==(1), P2)
+        @test all(≈(1), P2)
         P3 = collectdnPl(1, lmax = lmax, n = 0)
         @test all(==(1), P3)
 
@@ -64,7 +71,7 @@ tohyper(x) = Hyper(x, one(x), one(x), zero(x))
         P2 = collectPlm(-1, lmax = lmax, m = 0)
         P3 = collectdnPl(-1, lmax = lmax, n = 0)
         for l in axes(P, 1)
-            @test P[l] == P2[l] == P3[l] == (-1)^l
+            @test P[l] ≈ P2[l] ≈ P3[l] ≈ (-1)^l
         end
     end
 
