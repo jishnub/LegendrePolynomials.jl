@@ -94,66 +94,19 @@ end
 
 polytype(x) = float(typeof(x))
 
-"""
-    LegendrePolynomialIterator(x, [lmax::Union{Integer, Nothing}, [m::Integer = 0]])
-
-Return an iterator that generates the values of the normalized associated Legendre polynomials
-``P_\\ell^m(x)`` for the given `x`. For `m == 0` these are identical to the normalized Legendre
-polynomials.
-
-If `lmax` is left unspecified or set to `nothing`, this returns an unbounded iterator that loops
-over all valid values of `l`. On the other hand, if `lmax` is specified,
-then only the values of ``P_\\ell^m(x)`` from `m` to `lmax` are returned.
-
-!!! warn
-    `LegendrePolynomialIterator` will not be a part of the public API from the next minor release.
-
-# Examples
-```jldoctest
-julia> import LegendrePolynomials: LegendrePolynomialIterator
-
-julia> iter = LegendrePolynomialIterator(0.5, 4);
-
-julia> collect(iter)
-5-element OffsetArray(::Vector{Float64}, 0:4) with eltype Float64 with indices 0:4:
-  1.0
-  0.5
- -0.125
- -0.4375
- -0.2890625
-
-julia> iter = LegendrePolynomialIterator(0.5);
-
-julia> collect(Iterators.take(iter, 5)) # evaluete 5 elements (l = 0:4)
-5-element Vector{Float64}:
-  1.0
-  0.5
- -0.125
- -0.4375
- -0.2890625
-
-julia> collect(Iterators.take(Iterators.drop(iter, 100), 5)) # evaluate Pl for l = 100:104
-5-element Vector{Float64}:
- -0.0605180259618612
-  0.02196749072249231
-  0.08178451892628381
-  0.05963329258495025
- -0.021651535258316177
-```
-"""
-struct LegendrePolynomialIterator{T, L<:Union{Integer,Nothing}, M<:Integer, V}
+struct LegendrePolynomialIterator{T, L<:Union{Integer,Nothing}, M<:Union{Integer, Nothing}, V}
     x :: V
     lmax :: L
     m :: M
-    function LegendrePolynomialIterator{T,L,M,V}(x::V, lmax::L, m::M) where {T, L<:Union{Integer,Nothing}, M<:Integer, V}
+    function LegendrePolynomialIterator{T,L,M,V}(x::V, lmax::L, m::M) where {T, L<:Union{Integer,Nothing}, M<:Union{Integer, Nothing}, V}
         checkdomain(x)
         new{T,L,M,V}(x, lmax, m)
     end
 end
-LegendrePolynomialIterator(x) = LegendrePolynomialIterator{polytype(x), Nothing, Int, typeof(x)}(x, nothing, 0)
+LegendrePolynomialIterator(x) = LegendrePolynomialIterator{polytype(x), Nothing, Nothing, typeof(x)}(x, nothing, nothing)
 function LegendrePolynomialIterator(x, lmax::Integer)
     assertnonnegative(lmax)
-    LegendrePolynomialIterator{polytype(x), typeof(lmax), Int, typeof(x)}(x, lmax, 0)
+    LegendrePolynomialIterator{polytype(x), typeof(lmax), Nothing, typeof(x)}(x, lmax, nothing)
 end
 function LegendrePolynomialIterator(x, lmax::Integer, m::Integer)
     assertnonnegative(lmax)
@@ -165,8 +118,14 @@ end
 Base.eltype(::Type{<:LegendrePolynomialIterator{T}}) where {T} = T
 Base.IteratorSize(::Type{<:LegendrePolynomialIterator{<:Any,Nothing}}) = Base.IsInfinite()
 
-# starting values, l == m
-function Base.iterate(iter::LegendrePolynomialIterator{T}) where {T}
+function Base.iterate(iter::LegendrePolynomialIterator{T,<:Any,<:Nothing}) where {T}
+    Pl = one(T)
+    Plm1 = zero(T)
+    nextstate = (Pl, Plm1, nothing)
+    return Pl, (1, nextstate)
+end
+# starting value, l == m
+function Base.iterate(iter::LegendrePolynomialIterator{T,<:Any,<:Integer}) where {T}
     m = iter.m
     if m == 0
         Pl = one(T)
@@ -183,7 +142,17 @@ end
 _isdone(l, lmax) = l > lmax
 _isdone(::Any, ::Nothing) = false
 
-function Base.iterate(iter::LegendrePolynomialIterator{T}, state) where {T}
+function Base.iterate(iter::LegendrePolynomialIterator{T,<:Any,Nothing}, state) where {T}
+    l, prevstate = state
+    _isdone(l, iter.lmax) && return nothing
+    x = iter.x
+    # standard-norm Bonnet iteration
+    Pl, α = Pl_recursion(T, l, prevstate, x)
+    Plm1 = first(prevstate)
+    nextstate = (Pl, Plm1, α)
+    return Pl, (l+1, nextstate)
+end
+function Base.iterate(iter::LegendrePolynomialIterator{T,<:Any,<:Integer}, state) where {T}
     l, prevstate = state
     _isdone(l, iter.lmax) && return nothing
     m = iter.m
@@ -200,10 +169,16 @@ function Base.iterate(iter::LegendrePolynomialIterator{T}, state) where {T}
     return Pl, (l+1, nextstate)
 end
 
-Base.length(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = iter.lmax - iter.m + 1
+_length(iter) = _length(iter.lmax, iter.m)
+_length(lmax::Integer, m::Integer) = lmax - m + 1
+_length(lmax::Integer, m::Nothing) = lmax + 1
+_axes1(iter) = _axes1(iter.lmax, iter.m)
+_axes1(lmax::Integer, m::Integer) = m:lmax
+_axes1(lmax::Integer, m::Nothing) = 0:lmax
+Base.length(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = _length(iter)
 Base.size(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = (length(iter),)
-Base.axes(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = (iter.m:iter.lmax, )
-Base.keys(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = iter.m:iter.lmax
+Base.axes(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = (_axes1(iter), )
+Base.keys(iter::LegendrePolynomialIterator{<:Any,<:Integer}) = _axes1(iter)
 
 Base.copy(iter::LegendrePolynomialIterator) = typeof(iter)(iter.x, iter.lmax, iter.m)
 
@@ -420,8 +395,7 @@ julia> collectPl!(v, 0.5, lmax = 3) # only l from 0 to 3 are populated
 ```
 """
 function collectPl!(v::AbstractVector, x; lmax::Integer  = length(v) - 1, norm = Val(:standard))
-    assertnonnegative(lmax)
-    checklm(lmax, 0)
+    _checkvalues(x, lmax, 0, 0)
     n = lmax + 1
     checklength(v, n)
 
@@ -430,8 +404,8 @@ function collectPl!(v::AbstractVector, x; lmax::Integer  = length(v) - 1, norm =
     inds = (firstindex(v)-1) .+ (1:n)
     v_section = @view v[inds]
 
-    for (ind, (l, Plm)) in enumerate(pairs(iter))
-        v_section[ind] = maybenormalize(Plm, l, norm)
+    for (ind, (l, Pl)) in enumerate(pairs(iter))
+        v_section[ind] = maybenormalize(Pl, l, norm)
     end
 
     return v
@@ -455,8 +429,11 @@ julia> collectPl(0.5, lmax = 4)
 ```
 """
 function collectPl(x; lmax::Integer, norm = Val(:standard))
-    collectPlm(x; lmax = lmax, m = 0, norm = norm,
-        Tnorm = promote_type(Float64, float(typeof(lmax))))
+    _checkvalues(x, lmax, 0, 0)
+    v_offset = zeros(polytype(x), 0:lmax)
+    v = parent(v_offset)
+    collectPl!(v, x; lmax = lmax, norm = norm)
+    return v_offset
 end
 
 """
