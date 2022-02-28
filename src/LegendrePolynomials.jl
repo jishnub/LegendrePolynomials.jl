@@ -216,7 +216,7 @@ These have an L2 norm of `1`.
 julia> Pl(1, 2)
 1.0
 
-julia> Pl(0.5, 4) ≈ -37/128
+julia> Pl(0.5, 4) ≈ -37/128 # analytically obtained value
 true
 
 julia> Pl(0.5, 20, norm = Val(:normalized))
@@ -250,9 +250,9 @@ end
 """
     Plm(x, l::Integer, m::Integer; [norm = Val(:standard)])
 
-Compute the associatedLegendre polynomial ``P_\\ell,m(x)``.
+Compute the associated Legendre polynomial ``P_\\ell^m(x)`` for a non-negative ``m``.
 Optionally, the `norm` may be set to `Val(:normalized)`, in which case normalized
-associated Legendre polynomials are evaluated.
+associated Legendre polynomials are evaluated. These have an L2 norm of `1`.
 
 The coefficient `m` must be non-negative. For `m == 0` this function just returns
 Legendre polynomials.
@@ -260,7 +260,7 @@ Legendre polynomials.
 # Examples
 
 ```jldoctest
-julia> Plm(0.5, 3, 2) ≈ 45/8
+julia> Plm(0.5, 3, 2) ≈ 45/8 # analytically obtained value
 true
 
 julia> Plm(0.5, 4, 0) == Pl(0.5, 4)
@@ -381,15 +381,13 @@ julia> v = zeros(4);
 
 julia> collectPl!(v, 0.5);
 
-julia> all(((l,vl),) -> vl ≈ Pl(0.5, l), zip(0:3, v))
+julia> all(zip(0:3, v)) do (l, vl); vl ≈ Pl(0.5, l); end
 true
 
 julia> collectPl!(v, 0.5, norm = Val(:normalized));
 
-julia> all(((l,vl),) -> vl ≈ Pl(0.5, l, norm = Val(:normalized)), zip(0:3, v))
+julia> all(zip(0:3, v)) do (l,vl); vl ≈ Pl(0.5, l, norm = Val(:normalized)); end
 true
-
-julia> using OffsetArrays
 
 julia> v = zeros(0:4);
 
@@ -503,7 +501,7 @@ julia> v = zeros(2);
 
 julia> collectPlm!(v, 0.5, lmax = 3, m = 2);
 
-julia> all(((l, vl),) -> vl ≈ Plm(0.5, l, 2), zip(2:3, v))
+julia> all(zip(2:3, v)) do (l, vl); vl ≈ Plm(0.5, l, 2); end
 true
 ```
 """
