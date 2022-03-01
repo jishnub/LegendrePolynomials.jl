@@ -245,6 +245,8 @@ Compute the associated Legendre polynomial ``P_\\ell^m(x)`` for degree `l` and a
 Optionally, the `norm` may be set to `Val(:normalized)`, in which case normalized
 associated Legendre polynomials are evaluated. These have an L2 norm of `1`.
 
+The polynomials are defined to include the Condon-Shortley phase ``(-1)^m``.
+
 The coefficient `m` must be non-negative. For `m == 0` this function just returns
 Legendre polynomials.
 
@@ -487,6 +489,8 @@ end
 
 Compute the associated Legendre polynomials ``P_\\ell^m(x)`` for the argument `x`,
 degrees `l = lmin:lmax` and a non-negative order `m`, and store the result in `v`.
+
+The polynomials are defined to include the Condon-Shortley phase ``(-1)^m``.
 
 The coefficient `m` must be greater than or equal to zero.
 

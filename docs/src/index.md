@@ -37,7 +37,13 @@ where
 The starting value for a specific ``m`` is obtained by setting ``\ell = m``, in which case we use the explicit relation
 
 ```math
-\bar{P}_{\ell}^{\ell}\left(x\right)=\left(-1\right)^{\ell}\left(2\ell-1\right)!!\sqrt{\frac{\left(2\ell+1\right)}{2\left(2\ell\right)!}}\left(1-x^{2}\right)^{\left(\ell/2\right)}.
+\bar{P}_{m}^{m}\left(x\right)=\left(-1\right)^{m}\left(2m-1\right)!!\sqrt{\frac{\left(2m+1\right)}{2\left(2m\right)!}}\left(1-x^{2}\right)^{\left(m/2\right)}.
+```
+
+The polynomials, thus defined, include the Condon-Shortley phase ``(-1)^m``, and may be evaluated using the standard normalization as
+
+```math
+P_{\ell}^{m}\left(x\right)=\sqrt{\frac{2\left(\ell+m\right)!}{\left(2\ell+1\right)\left(\ell-m\right)!}}\bar{P}_{\ell}^{m}\left(x\right).
 ```
 
 There are six main functions:
