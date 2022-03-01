@@ -35,7 +35,7 @@ tohyper(x) = Hyper(x, one(x), one(x), zero(x))
 end
 
 @testset "Pl" begin
-	x = 2rand() - 1 
+	x = 2rand() - 1
     lmax = 5
     P = collectPl(x, lmax = lmax)
     P2 = collectPlm(x, lmax = lmax, m = 0)
@@ -156,7 +156,7 @@ end
 end
 
 @testset "dPl/dx" begin
-    x = 2rand() - 1 
+    x = 2rand() - 1
     xh = tohyper(x)
     lmax = 5
     P = eps1.(collectPl(xh, lmax = lmax))
@@ -192,7 +192,7 @@ end
 end
 
 @testset "d^2Pl/dx^2" begin
-    x = 2rand() - 1 
+    x = 2rand() - 1
     xh = tohyper(x)
     lmax = 5
     P = eps1eps2.(collectPl(xh, lmax = lmax))
