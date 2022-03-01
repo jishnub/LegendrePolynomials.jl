@@ -299,7 +299,7 @@ end
         end
     end
     @testset "Plm" begin
-        for m in 0:4, l in m:4
+        for m in -4:4, l in abs(m):4
             f = x -> Plm(x, l, m, norm = Val(:normalized))^2
             I, E = quadgk(f, -1, 1, rtol=1e-2)
             @test I ≈ 1 rtol=1e-2 atol=E
