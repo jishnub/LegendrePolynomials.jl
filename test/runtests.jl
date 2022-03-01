@@ -88,6 +88,17 @@ end
         end
     end
 
+    @testset "large degree" begin
+        l = 200
+        x = 0.5
+        expval = -big"50516977220606216108218169174406199263421124121643988159364881659548
+                    89526732539052701378087401221240954262583383510627"/
+                    big"3227812347608635737069898965003764842912132241036529391038324195675
+                    80952752105149328705669160017228929487896496593436672"
+
+        @test Pl(x, l) ≈ expval rtol=1e-14
+    end
+
     @test_throws DomainError collectPl(-2, lmax = lmax)
     @test_throws ArgumentError collectPl(0, lmax = -1)
 
