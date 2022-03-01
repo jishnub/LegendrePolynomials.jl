@@ -107,8 +107,7 @@ struct LegendrePolynomialIterator{T, L <: Union{Integer, Nothing}, V}
 	x :: V
 	lmax :: L
 	function LegendrePolynomialIterator{T,L,V}(x::V, lmax::L) where {T, L <: Union{Integer, Nothing}, V}
-        Base.depwarn("LegendrePolynomialIterator will not be a part of the public API"*
-            " from the next minor release", :LegendrePolynomialIterator)
+        Base.depwarn("LegendrePolynomialIterator will not be a part of the public API from the next minor release", :LegendrePolynomialIterator)
 		checkdomain(x)
 		new{T,L,V}(x, lmax)
 	end
