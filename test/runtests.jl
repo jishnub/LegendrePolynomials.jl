@@ -97,6 +97,7 @@ end
                     80952752105149328705669160017228929487896496593436672"
 
         @test Pl(x, l) ≈ expval rtol=1e-14
+        @test Pl(big(x), big(l)) ≈ expval rtol=1e-75
     end
 
     @test_throws DomainError collectPl(-2, lmax = lmax)
@@ -146,6 +147,7 @@ end
            14193734385778184852110786895451610689633525907993316650390625"/
            big"1606938044258990275541962092341162602522202993782792835301376"
         @test Plm(x, l, m) ≈ expval rtol=1e-12
+        @test Plm(big(x), big(l), m) ≈ expval rtol=1e-70
     end
     @testset "negative order" begin
         x = 0.5

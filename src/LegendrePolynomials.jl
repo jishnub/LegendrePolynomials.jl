@@ -191,7 +191,7 @@ function Base.iterate(iter::LegendrePolynomialIterator{T,<:Integer}, state) wher
     return Pl, (l+1, nextstate)
 end
 
-maybenormalize(P, l, ::Val{:normalized}) = oftype(P, P * √((2l+1)/2))
+maybenormalize(P, l, ::Val{:normalized}) = oftype(P, P * √(l+1/2))
 maybenormalize(P, l, ::Val{:standard}) = P
 maybenormalize(P, l, norm) = throw(ArgumentError("norm = $norm undefined, valid norms are Val(:standard) and Val(:normalized)"))
 
