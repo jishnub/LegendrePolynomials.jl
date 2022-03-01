@@ -13,6 +13,13 @@ end
 
 tohyper(x) = Hyper(x, one(x), one(x), zero(x))
 
+@testset "LegendrePolynomialIterator" begin
+    iter = LegendrePolynomials.LegendrePolynomialIterator(0)
+    @test Base.IteratorSize(iter) === Base.IsInfinite()
+    iter = LegendrePolynomials.LegendrePolynomialIterator(0, 1)
+    @test Base.IteratorSize(iter) === Base.IsInfinite()
+end
+
 @testset "Pl and collectPl" begin
 	x = 2rand() - 1
     lmax = 5
@@ -80,6 +87,8 @@ tohyper(x) = Hyper(x, one(x), one(x), zero(x))
 
     @test_throws DomainError collectPl(-2, lmax = lmax)
     @test_throws ArgumentError collectPl(0, lmax = -1)
+
+    @test_throws ArgumentError collectPl(0, lmax=1, norm = Val(:undefined))
 end
 
 @testset "Plm" begin
@@ -91,10 +100,30 @@ end
         @test Plm(0.5, 10, 6) ≈ -674999325/8192
         @test Plm(0.5, 10, 10) ≈ 159099165225/1024
     end
+    @testset "non-standard integers" begin
+        l = 2
+        m = 1
+        x = 0.5
+        p_Int = Plm(x, l, m)
+        p_Int8 = Plm(x, Int8(l), Int8(m))
+        @test p_Int == p_Int8
+        p_BigInt = Plm(big(x), big(l), big(m))
+        @test p_BigInt ≈ p_Int rtol=1e-8
+    end
+    @testset "Condon-Shortley phase" begin
+        p1 = Plm(0.5, 2, 1)
+        p2 = Plm(0.5, 2, 1, csphase = false)
+        @test p1 ≈ -p2
+        p1 = Plm(0.5, 2, 2)
+        p2 = Plm(0.5, 2, 2, csphase = false)
+        @test p1 ≈ p2
+    end
     @test_throws ArgumentError Plm(0.5, 3, 10)
     @test_throws ArgumentError Plm(0.5, -1, 3)
     @test_throws ArgumentError Plm(0.5, 1, -3)
     @test_throws DomainError Plm(2.5, 1, 3)
+
+    @test_throws ArgumentError collectPlm(0, lmax=1, m=1, norm = Val(:undefined))
 end
 
 @testset "dnPl" begin

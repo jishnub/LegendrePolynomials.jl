@@ -103,10 +103,10 @@ function logabspll_prefactor(l, T = typeof(l))
     a - b
 end
 neg1pow(l) = iseven(l) ? 1 : -1
-function pll_prefactor(l, T = typeof(l))
+function pll_prefactor(l, T = typeof(l); csphase::Bool = true)
     l == 0 && return sqrt(oftype(_logfactorial(T(l)), 1/2))
     t = logabspll_prefactor(l, T)
-    neg1pow(l) * exp(t)
+    (csphase ? neg1pow(l) : 1) * exp(t)
 end
 function coeff(l, m, T = float(promote_type(typeof(l), typeof(m))))
     √((2T(l) - 1)/((T(l)-m)*(T(l)+m))*(2T(l)+1))
@@ -119,13 +119,14 @@ polytype(x, m) = promote_type(polytype(x), polytype(m))
 struct LegendrePolynomialIterator{T, M<:Union{Integer, Nothing}, V}
     x :: V
     m :: M
-    function LegendrePolynomialIterator{T,M,V}(x::V, m::M) where {T, M<:Union{Integer, Nothing}, V}
+    csphase :: Bool
+    function LegendrePolynomialIterator{T,M,V}(x::V, m::M, csphase::Bool) where {T, M<:Union{Integer, Nothing}, V}
         checkdomain(x)
-        new{T,M,V}(x, m)
+        new{T,M,V}(x, m, csphase)
     end
 end
-function LegendrePolynomialIterator(x, m::Union{Integer, Nothing} = nothing)
-    LegendrePolynomialIterator{polytype(x, m), typeof(m), typeof(x)}(x, m)
+function LegendrePolynomialIterator(x, m::Union{Integer, Nothing} = nothing; csphase::Bool = true)
+    LegendrePolynomialIterator{polytype(x, m), typeof(m), typeof(x)}(x, m, csphase)
 end
 
 Base.eltype(::Type{<:LegendrePolynomialIterator{T}}) where {T} = T
@@ -157,7 +158,7 @@ function Base.iterate(iter::LegendrePolynomialIterator{T,<:Integer}) where {T}
     if m == 0
         Pl = one(T)
     else
-        f = pll_prefactor(m)
+        f = pll_prefactor(m, csphase = iter.csphase)
         t = f * (√(1-x^2))^m
         Pl = convert(T, t)
     end
@@ -239,16 +240,17 @@ function doublefactorial(T, n)
 end
 
 """
-    Plm(x, l::Integer, m::Integer; [norm = Val(:standard)])
+    Plm(x, l::Integer, m::Integer; [kwargs...])
 
 Compute the associated Legendre polynomial ``P_\\ell^m(x)`` for degree `l` and a non-negative order ``m``.
-Optionally, the `norm` may be set to `Val(:normalized)`, in which case normalized
-associated Legendre polynomials are evaluated. These have an L2 norm of `1`.
 
-The polynomials are defined to include the Condon-Shortley phase ``(-1)^m``.
+For `m == 0` this function returns Legendre polynomials.
 
-The coefficient `m` must be non-negative. For `m == 0` this function just returns
-Legendre polynomials.
+# Optional keyword arguments
+* `norm`: The normalization used in the function. Possible
+    options are `Val(:standard)` (default) and `Val(:normalized)`.
+    The functions obtained with `norm = Val(:normalized)` have an L2 norm of ``1``.
+* `csphase::Bool`: The Condon-shortley phase ``(-1)^m``, which is included by default.
 
 # Examples
 
@@ -260,10 +262,10 @@ julia> Plm(0.5, 4, 0) == Pl(0.5, 4)
 true
 ```
 """
-function Plm(x, l::Integer, m::Integer; norm = Val(:standard))
+function Plm(x, l::Integer, m::Integer; norm = Val(:standard), csphase::Bool = true)
     _checkvalues(x, l, m, 0)
     lT, mT = promote(l, m)
-    iter_full = LegendrePolynomialIterator(x, mT)
+    iter_full = LegendrePolynomialIterator(x, mT; csphase)
     iter = Iterators.drop(iter_full, l - m)
     Plm = first(iter)
     return maybenormalize(Plm, lT, mT, norm)
@@ -354,12 +356,17 @@ Base.@propagate_inbounds function dnPl(x, l::Integer, n::Integer,
 end
 
 """
-    collectPl!(v::AbstractVector, x; [lmin::Integer = 0], [lmax::Integer = length(v) - 1 + lmin], [norm = Val(:standard)])
+    collectPl!(v::AbstractVector, x; [lmin::Integer = 0], [lmax::Integer = length(v) - 1 + lmin], [kwargs...])
 
 Compute the Legendre Polynomials ``P_\\ell(x)`` for the argument `x` and degrees `l = lmin:lmax`,
 and store them in `v`.
 
-At output `v[firstindex(v) + l] == Pl(x,l)`.
+At output `v[firstindex(v) + l] == Pl(x, l; kwargs...)`.
+
+# Optional keyword arguments
+* `norm`: The normalization used in the function. Possible
+    options are `Val(:standard)` (default) and `Val(:normalized)`.
+    The functions obtained with `norm = Val(:normalized)` have an L2 norm of ``1``.
 
 # Examples
 ```jldoctest
@@ -407,10 +414,15 @@ function collectPl!(v::AbstractVector, x; lmin::Integer = 0,
 end
 
 """
-    collectPl(x; lmax::Integer, [lmin::Integer = 0], [norm = Val(:standard)])
+    collectPl(x; lmax::Integer, [lmin::Integer = 0], [kwargs...])
 
 Compute the Legendre Polynomial ``P_\\ell(x)`` for the argument `x` and degrees `l = lmin:lmax`.
-Return `P` with indices `lmin:lmax`, where `P[l] == Pl(x,l)`
+Return `P` with indices `lmin:lmax`, where `P[l] == Pl(x, l; kwargs...)`
+
+# Optional keyword arguments
+* `norm`: The normalization used in the function. Possible
+    options are `Val(:standard)` (default) and `Val(:normalized)`.
+    The functions obtained with `norm = Val(:normalized)` have an L2 norm of ``1``.
 
 # Examples
 ```jldoctest
@@ -437,21 +449,23 @@ function collectPl(x; lmax::Integer, lmin::Integer = 0, norm = Val(:standard))
 end
 
 """
-    collectPlm(x; m::Integer, lmax::Integer, [lmin::Integer = m], [norm = Val(:standard)], [Tnorm])
+    collectPlm(x; m::Integer, lmax::Integer, [lmin::Integer = m], [kwargs...])
 
 Compute the associated Legendre polynomials ``P_\\ell^m(x)`` for the argument `x`,
 degrees `l = lmin:lmax` and a non-negative order `m`.
 
-The polynomials are defined to include the Condon-Shortley phase ``(-1)^m``.
+Returns `v` with indices `lmin:lmax`, with `v[l] == Plm(x, l, m; kwargs...)`.
 
-The coefficient `m` must be greater than or equal to zero.
-
-Returns `v` with indices `lmin:lmax`, where `v[l] == Plm(x, l, m)`.
-
-!!! note
-    In the standard normalization, if the norm of the polynomials may be expressed as a certain
-    type without overflow (eg. `Float64`), this may be provided as the optional argument `Tnorm`.
-    In general, `Tnorm` is dynamically inferred from the order and the degrees that are provided.
+# Optional keyword arguments
+* `norm`: The normalization used in the function. Possible
+    options are `Val(:standard)` (default) and `Val(:normalized)`.
+    The functions obtained with `norm = Val(:normalized)` have an L2 norm of ``1``.
+* `csphase::Bool`: The Condon-shortley phase ``(-1)^m``, which is included by default.
+* `Tnorm`: Type of the normalization factor, which is dynamicall inferred by default,
+    and is used in allocating an appropriate container.
+    In case it is known that the norm may be expressed as a certain type without overflow
+    (eg. `Float64`), this may be provided. Care must be taken to avoid overflows if `Tnorm`
+    is passed as an argument.
 
 # Examples
 
@@ -474,27 +488,30 @@ function collectPlm(x; lmax::Integer, m::Integer, norm = Val(:standard),
             _checkvalues(x, lmax, m, 0)
             typeof(plm_norm(lmax, m))
             end : float(mapreduce(typeof, promote_type, (m, lmax, lmin)))
-        end
+        end,
+        csphase::Bool = true,
         )
     _checkvalues(x, lmin, m, 0)
     lmin <= lmax || throw(ArgumentError("lmin must be less than or equal to lmax"))
     T = promote_type(polytype(x), Tnorm)
     v = OffsetVector{T}(undef, lmin:lmax)
-    collectPlm!(parent(v), x; lmin, lmax, m, norm)
+    collectPlm!(parent(v), x; lmin, lmax, m, norm, csphase)
     v
 end
 
 """
-    collectPlm!(v::AbstractVector, x; m::Integer, [lmin::Integer = m], [lmax::Integer = length(v) - 1 + lmin], [norm = Val(:standard)])
+    collectPlm!(v::AbstractVector, x; m::Integer, [lmin::Integer = m], [lmax::Integer = length(v) - 1 + lmin], [kwargs...])
 
 Compute the associated Legendre polynomials ``P_\\ell^m(x)`` for the argument `x`,
 degrees `l = lmin:lmax` and a non-negative order `m`, and store the result in `v`.
 
-The polynomials are defined to include the Condon-Shortley phase ``(-1)^m``.
+At output, `v[l + firstindex(v)] == Plm(x, l, m; kwargs...)` for `l = lmin:lmax`.
 
-The coefficient `m` must be greater than or equal to zero.
-
-At output, `v[l + firstindex(v)] == Plm(x, l, m)` for `l = lmin:lmax`.
+# Optional keyword arguments
+* `norm`: The normalization used in the function. Possible
+    options are `Val(:standard)` (default) and `Val(:normalized)`.
+    The functions obtained with `norm = Val(:normalized)` have an L2 norm of ``1``.
+* `csphase::Bool`: The Condon-shortley phase ``(-1)^m``, which is included by default.
 
 # Examples
 
@@ -509,7 +526,9 @@ true
 """
 function collectPlm!(v, x; m::Integer, lmin::Integer = m,
         lmax::Integer = length(v) - 1 + lmin,
-        norm = Val(:standard))
+        norm = Val(:standard),
+        csphase::Bool = true,
+        )
 
     m >= 0 || throw(ArgumentError("coefficient m must be >= 0"))
     lmin <= lmax || throw(ArgumentError("lmin must be less than or equal to lmax"))
@@ -518,7 +537,7 @@ function collectPlm!(v, x; m::Integer, lmin::Integer = m,
     checklength(v, n)
 
     lminT, lmaxT, mT = promote(lmin, lmax, m)
-    iter = Iterators.drop(LegendrePolynomialIterator(x, mT), lmin - m)
+    iter = Iterators.drop(LegendrePolynomialIterator(x, mT; csphase), lmin - m)
 
     inds = (firstindex(v)-1) .+ (1:n)
     v_section = @view v[inds]
