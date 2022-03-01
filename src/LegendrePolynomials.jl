@@ -400,13 +400,14 @@ function collectPl!(v::AbstractVector, x; lmin::Integer = 0,
     n = lmax - lmin + 1
     checklength(v, n)
 
+    lmaxT, lminT = promote(lmax, lmin)
     iter = Iterators.take(Iterators.drop(LegendrePolynomialIterator(x), lmin), n)
 
     inds = (firstindex(v)-1) .+ (1:n)
     v_section = @view v[inds]
 
     for (ind, Pl) in enumerate(iter)
-        l = ind - 1 + lmin
+        l = ind - 1 + lminT
         v_section[ind] = maybenormalize(Pl, l, norm)
     end
 

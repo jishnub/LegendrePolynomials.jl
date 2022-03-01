@@ -16,8 +16,11 @@ tohyper(x) = Hyper(x, one(x), one(x), zero(x))
 @testset "LegendrePolynomialIterator" begin
     iter = LegendrePolynomials.LegendrePolynomialIterator(0)
     @test Base.IteratorSize(iter) === Base.IsInfinite()
+    @test eltype(iter) == Float64
     iter = LegendrePolynomials.LegendrePolynomialIterator(0, 1)
     @test Base.IteratorSize(iter) === Base.IsInfinite()
+    iter = LegendrePolynomials.LegendrePolynomialIterator(big(0))
+    @test eltype(iter) == BigFloat
 end
 
 @testset "Pl and collectPl" begin
