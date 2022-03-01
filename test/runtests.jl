@@ -147,6 +147,15 @@ end
            big"1606938044258990275541962092341162602522202993782792835301376"
         @test Plm(x, l, m) ≈ expval rtol=1e-12
     end
+    @testset "negative order" begin
+        x = 0.5
+        pm1 = collectPlm(x, lmax = 2, m = -1)
+        @test Plm(x, 1, -1) ≈ pm1[1] ≈ √3/4
+        @test Plm(x, 2, -1) ≈ pm1[2] ≈ √3/8
+        pm2 = collectPlm(x, lmax = 3, m = -2)
+        @test Plm(x, 2, -2) ≈ pm2[2] ≈ 3/32
+        @test Plm(x, 3, -2) ≈ pm2[3] ≈ 3/64
+    end
     @test_throws ArgumentError Plm(0.5, 3, 10)
     @test_throws ArgumentError Plm(0.5, -1, 3)
     @test_throws ArgumentError Plm(0.5, 1, -3)

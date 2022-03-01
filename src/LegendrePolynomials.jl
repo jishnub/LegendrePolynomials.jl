@@ -35,7 +35,14 @@ end
 
 assertnonnegative(l::Integer) = l >= 0 || throw(ArgumentError("l must be >= 0, received " * string(l)))
 
-checklm(l::Integer, m::Integer) = 0 <= m <= l || throw(ArgumentError("m must satisfy 0 <= m <= l"))
+checklm(l::Integer, m::Integer) = -l <= m <= l || throw(ArgumentError("m must satisfy -l <= m <= l"))
+
+function _checkvalues(x, l, m, n)
+    checkdomain(x)
+    assertnonnegative(l)
+    checklm(l, m)
+    n >= 0 || throw(ArgumentError("order of derivative n must be >= 0"))
+end
 
 function checklength(arr, minlength)
     length(arr) >= minlength || throw(ArgumentError(
@@ -125,7 +132,10 @@ struct LegendrePolynomialIterator{T, M<:Union{Integer, Nothing}, V}
         new{T,M,V}(x, m, csphase)
     end
 end
+_checkm(::Nothing) = true
+_checkm(m::Integer) = m >= 0
 function LegendrePolynomialIterator(x, m::Union{Integer, Nothing} = nothing; csphase::Bool = true)
+    @assert _checkm(m) "m must be non-negative"
     LegendrePolynomialIterator{polytype(x, m), typeof(m), typeof(x)}(x, m, csphase)
 end
 
@@ -183,23 +193,23 @@ end
 
 maybenormalize(P, l, ::Val{:normalized}) = oftype(P, P * √((2l+1)/2))
 maybenormalize(P, l, ::Val{:standard}) = P
-maybenormalize(P, l, norm) = throw(ArgumentError("norm = $norm undefined, valid norms are :standard and :normalized"))
+maybenormalize(P, l, norm) = throw(ArgumentError("norm = $norm undefined, valid norms are Val(:standard) and Val(:normalized)"))
 
-function maybenormalize(P, l, m, norm::Val{:normalized})
+function maybenormalize(P, l, m, norm::Val{:normalized}, csphase = true)
     if m == 0
         return maybenormalize(P, l, norm)
     else
         return P
     end
 end
-function maybenormalize(P, l, m, norm::Val{:standard})
+function maybenormalize(P, l, m, norm::Val{:standard}, csphase = true)
     if m == 0
         return maybenormalize(P, l, norm)
     else
-        return plm_norm(l, m) * P
+        return (m < 0 && csphase ? neg1pow(m) : 1) * plm_norm(l, m) * P
     end
 end
-maybenormalize(P, l, m, norm) = throw(ArgumentError("norm = $norm undefined, valid norms are :standard and :normalized"))
+maybenormalize(P, l, m, norm, args...) = throw(ArgumentError("norm = $norm undefined, valid norms are Val(:standard) and Val(:normalized)"))
 
 """
     Pl(x, l::Integer; [norm = Val(:standard)])
@@ -242,7 +252,8 @@ end
 """
     Plm(x, l::Integer, m::Integer; [kwargs...])
 
-Compute the associated Legendre polynomial ``P_\\ell^m(x)`` for degree `l` and a non-negative order ``m``.
+Compute the associated Legendre polynomial ``P_\\ell^m(x)`` for degree `l`
+and order ``m`` lying in `-l:l`.
 
 For `m == 0` this function returns Legendre polynomials.
 
@@ -265,18 +276,13 @@ true
 function Plm(x, l::Integer, m::Integer; norm = Val(:standard), csphase::Bool = true)
     _checkvalues(x, l, m, 0)
     lT, mT = promote(l, m)
-    iter_full = LegendrePolynomialIterator(x, mT; csphase)
-    iter = Iterators.drop(iter_full, l - m)
+    iter_full = LegendrePolynomialIterator(x, abs(mT); csphase)
+    iter = Iterators.drop(iter_full, l - abs(m))
     Plm = first(iter)
-    return maybenormalize(Plm, lT, mT, norm)
+    return maybenormalize(Plm, lT, mT, norm, csphase)
 end
 
-function _checkvalues(x, l, m, n)
-    checkdomain(x)
-    assertnonnegative(l)
-    checklm(l, m)
-    n >= 0 || throw(ArgumentError("order of derivative n must be >= 0"))
-end
+
 
 Base.@propagate_inbounds function _unsafednPl!(cache, x, l, n)
     # unsafe, assumes 1-based indexing
@@ -450,10 +456,10 @@ function collectPl(x; lmax::Integer, lmin::Integer = 0, norm = Val(:standard))
 end
 
 """
-    collectPlm(x; m::Integer, lmax::Integer, [lmin::Integer = m], [kwargs...])
+    collectPlm(x; m::Integer, lmax::Integer, [lmin::Integer = abs(m)], [kwargs...])
 
 Compute the associated Legendre polynomials ``P_\\ell^m(x)`` for the argument `x`,
-degrees `l = lmin:lmax` and a non-negative order `m`.
+degrees `l = lmin:lmax` and order `m` lying in `-l:l`.
 
 Returns `v` with indices `lmin:lmax`, with `v[l] == Plm(x, l, m; kwargs...)`.
 
@@ -483,7 +489,7 @@ true
 ```
 """
 function collectPlm(x; lmax::Integer, m::Integer, norm = Val(:standard),
-        lmin::Integer = m,
+        lmin::Integer = abs(m),
         Tnorm = begin
             norm === Val(:standard) ? begin
             _checkvalues(x, lmax, m, 0)
@@ -501,10 +507,10 @@ function collectPlm(x; lmax::Integer, m::Integer, norm = Val(:standard),
 end
 
 """
-    collectPlm!(v::AbstractVector, x; m::Integer, [lmin::Integer = m], [lmax::Integer = length(v) - 1 + lmin], [kwargs...])
+    collectPlm!(v::AbstractVector, x; m::Integer, [lmin::Integer = abs(m)], [lmax::Integer = length(v) - 1 + lmin], [kwargs...])
 
 Compute the associated Legendre polynomials ``P_\\ell^m(x)`` for the argument `x`,
-degrees `l = lmin:lmax` and a non-negative order `m`, and store the result in `v`.
+degrees `l = lmin:lmax` and order `m` lying in `-l:l`, and store the result in `v`.
 
 At output, `v[l + firstindex(v)] == Plm(x, l, m; kwargs...)` for `l = lmin:lmax`.
 
@@ -525,27 +531,26 @@ julia> all(zip(2:3, v)) do (l, vl); vl ≈ Plm(0.5, l, 2); end
 true
 ```
 """
-function collectPlm!(v, x; m::Integer, lmin::Integer = m,
+function collectPlm!(v, x; m::Integer, lmin::Integer = abs(m),
         lmax::Integer = length(v) - 1 + lmin,
         norm = Val(:standard),
         csphase::Bool = true,
         )
 
-    m >= 0 || throw(ArgumentError("coefficient m must be >= 0"))
     lmin <= lmax || throw(ArgumentError("lmin must be less than or equal to lmax"))
     checklm(lmin, m)
     n = lmax - lmin + 1
     checklength(v, n)
 
     lminT, lmaxT, mT = promote(lmin, lmax, m)
-    iter = Iterators.drop(LegendrePolynomialIterator(x, mT; csphase), lmin - m)
+    iter = Iterators.drop(LegendrePolynomialIterator(x, abs(mT); csphase), lmin - abs(m))
 
     inds = (firstindex(v)-1) .+ (1:n)
     v_section = @view v[inds]
 
     for (ind, Plm) in enumerate(iter)
         l = ind - 1 + lminT
-        v_section[ind] = maybenormalize(Plm, l, mT, norm)
+        v_section[ind] = maybenormalize(Plm, l, mT, norm, csphase)
         ind == n && break
     end
 
