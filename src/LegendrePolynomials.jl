@@ -67,8 +67,11 @@ polytype(x) = typeof(float(x*x))
 Return an iterator that generates the values of the Legendre polynomials ``P_\\ell(x)`` for the given `x`.
 If `lmax` is specified then only the values of ``P_\\ell(x)`` from `0` to `lmax` are returned.
 
+!!! warn
+    `LegendrePolynomialIterator` will not be a part of the public API from the next minor release.
+
 # Examples
-``jldoctest
+```jldoctest
 julia> import LegendrePolynomials: LegendrePolynomialIterator
 
 julia> iter = LegendrePolynomialIterator(0.5, 4);
@@ -84,7 +87,7 @@ julia> collect(iter)
 julia> iter = LegendrePolynomialIterator(0.5);
 
 julia> collect(Iterators.take(iter, 5)) # evaluete 5 elements (l = 0:4)
-5-element Array{Float64,1}:
+5-element Vector{Float64}:
   1.0
   0.5
  -0.125
@@ -92,7 +95,7 @@ julia> collect(Iterators.take(iter, 5)) # evaluete 5 elements (l = 0:4)
  -0.2890625
 
 julia> collect(Iterators.take(Iterators.drop(iter, 100), 5)) # evaluate Pl for l = 100:104
-5-element Array{Float64,1}:
+5-element Vector{Float64}:
  -0.0605180259618612
   0.02196749072249231
   0.08178451892628381
@@ -104,6 +107,8 @@ struct LegendrePolynomialIterator{T, L <: Union{Integer, Nothing}, V}
 	x :: V
 	lmax :: L
 	function LegendrePolynomialIterator{T,L,V}(x::V, lmax::L) where {T, L <: Union{Integer, Nothing}, V}
+        Base.depwarn("LegendrePolynomialIterator will not be a part of the public API"*
+            " from the next minor release", :LegendrePolynomialIterator)
 		checkdomain(x)
 		new{T,L,V}(x, lmax)
 	end
@@ -149,7 +154,7 @@ Base.copy(iter::LegendrePolynomialIterator) = typeof(iter)(iter.x, iter.lmax)
 """
 	Pl(x, l::Integer)
 
-Compute the Legendre Polynomial ``P_\\ell(x)`` for the argument `x` and the degree `l`
+Compute the Legendre Polynomial ``P_\\ell(x)`` for the argument `x` and the degree `l`.
 
 # Examples
 ```jldoctest
@@ -189,7 +194,7 @@ Base.@propagate_inbounds function _unsafePlm!(cache, x, l, m)
 	# handle m > 0
 	for mi in 1:m
 		# We denote the terms as P_mi_li
-	
+
 		# li == mi
 		P_mim1_mim1 = cache[1]
 		P_mi_mi = Plm_recursion_m(eltype(cache), mi, mi, P_mim1_mim1, x)
@@ -219,11 +224,13 @@ end
 """
 	Plm(x, l::Integer, m::Integer, [cache::AbstractVector])
 
-Compute the associatedLegendre polynomial ``P_\\ell,m(x)``.
-Optionally a pre-allocated vector `cache` may be provided, which must have a minimum length of `l - m + 1` 
+Compute the associatedLegendre polynomial ``P_\\ell^m(x)``.
+Optionally a pre-allocated vector `cache` may be provided, which must have a minimum length of `l - m + 1`
 and may be overwritten during the computation.
 
-The coefficient `m` must be non-negative. For `m == 0` this function just returns 
+The polynomials are defined to include the Condon-Shortley phase ``(-1)^m``.
+
+The coefficient `m` must be non-negative. For `m == 0` this function just returns
 Legendre polynomials.
 
 # Examples
@@ -236,7 +243,7 @@ julia> Plm(0.5, 4, 0) == Pl(0.5, 4)
 true
 ```
 """
-Base.@propagate_inbounds function Plm(x, l::Integer, m::Integer, 
+Base.@propagate_inbounds function Plm(x, l::Integer, m::Integer,
 	A = begin
 		_checkvalues_m(x, l, m)
 		# do not allocate A if the value is trivially zero
@@ -407,7 +414,10 @@ collectPl(x; lmax::Integer) = collect(LegendrePolynomialIterator(x, lmax))
 """
 	collectPlm(x; lmax::Integer, m::Integer)
 
-Compute the associated Legendre Polynomial ``P_\\ell,m(x)`` for the argument `x` and all degrees `l = 0:lmax`. 
+Compute the associated Legendre Polynomial ``P_\\ell^m(x)`` for the argument `x` and all degrees `l = 0:lmax`.
+The polynomials for `l < m` are defined to be zero.
+
+The polynomials are defined to include the Condon-Shortley phase ``(-1)^m``.
 
 The coefficient `m` must be greater than or equal to zero.
 
@@ -437,8 +447,10 @@ end
 """
 	collectPlm!(v::AbstractVector, x; lmax::Integer, m::Integer)
 
-Compute the associated Legendre Polynomial ``P_\\ell,m(x)`` for the argument `x` and all degrees `l = 0:lmax`, 
-and store the result in `v`. 
+Compute the associated Legendre Polynomial ``P_\\ell^m(x)`` for the argument `x` and all degrees `l = 0:lmax`,
+and store the result in `v`. The polynomials for `l < m` are defined to be zero.
+
+The polynomials are defined to include the Condon-Shortley phase ``(-1)^m``.
 
 The coefficient `m` must be greater than or equal to zero.
 
@@ -461,12 +473,12 @@ function collectPlm!(v, x; lmax::Integer, m::Integer)
 	assertnonnegative(lmax)
 	m >= 0 || throw(ArgumentError("coefficient m must be >= 0"))
 	checklength(v, lmax + 1)
-	
+
 	# trivially zero for l < m
 	fill!((@view v[(0:m-1) .+ firstindex(v)]), zero(eltype(v)))
 	# populate the other elements
 	@inbounds Plm(x, lmax, m, @view v[(m:lmax) .+ firstindex(v)])
-	
+
 	v
 end
 
@@ -512,7 +524,7 @@ At output, `v[l + firstindex(v)] == dnPl(x, l, n)` for `l = 0:lmax`.
 
 # Examples
 
-``jldoctest
+```jldoctest
 julia> v = zeros(4);
 
 julia> collectdnPl!(v, 0.5, lmax = 3, n = 2)
