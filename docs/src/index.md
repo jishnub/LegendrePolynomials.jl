@@ -50,8 +50,8 @@ There are six main functions:
 
 * [`Pl(x,l; [norm])`](@ref Pl): this evaluates the Legendre polynomial for a given degree `l` at the argument `x`. The argument needs to satisfy `-1 <= x <= 1`.
 * [`collectPl(x; lmax, [norm])`](@ref collectPl): this evaluates all the polynomials for `l` lying in `0:lmax` at the argument `x`. As before the argument needs to lie in the domain of validity. Functionally this is equivalent to `Pl.(x, 0:lmax)`, except `collectPl` evaluates the result in one pass, and is therefore faster. There is also the in-place version [`collectPl!`](@ref) that uses a pre-allocated array.
-* [`Plm(x, l, m; [norm])`](@ref Plm): this evaluates the associated Legendre polynomial ``P_\ell,m(x)`` at the argument ``x``. The argument needs to satisfy `-1 <= x <= 1`.
-* [`collectPlm(x; m, lmax, [norm])`](@ref collectPlm): this evaluates the associated Legendre polynomials with coefficient `m` for `l = 0:lmax`. There is also an in-place version [`collectPlm!`](@ref) that uses a pre-allocated array.
+* [`Plm(x, l, m; [norm])`](@ref Plm): this evaluates the associated Legendre polynomial ``P_\ell^m(x)`` at the argument ``x``. The argument needs to satisfy `-1 <= x <= 1`.
+* [`collectPlm(x; m, lmax, [norm])`](@ref collectPlm): this evaluates the associated Legendre polynomials with coefficient `m` for `l = abs(m):lmax`. There is also an in-place version [`collectPlm!`](@ref) that uses a pre-allocated array.
 * [`dnPl(x, l, n)`](@ref dnPl): this evaluates the ``n``-th derivative of the Legendre polynomial ``P_\ell(x)`` at the argument ``x``. The argument needs to satisfy `-1 <= x <= 1`.
 * [`collectdnPl(x; n, lmax)`](@ref collectdnPl): this evaluates the ``n``-th derivative of all the Legendre polynomials for `l = 0:lmax`. There is also an in-place version [`collectdnPl!`](@ref) that uses a pre-allocated array.
 
@@ -97,7 +97,7 @@ julia> collectPl(0.5, lmax = 3)
 ```
 
 Evaluate the associated Legendre Polynomials for order `m` and degree `l` in `lmin:lmax`
-as `collectPlm(x; m, lmin, lmax)`. By default `lmin` is chosen to be `m`, and may be omitted.
+as `collectPlm(x; m, lmin, lmax)`. By default `lmin` is chosen to be `abs(m)`, and may be omitted.
 
 ```jldoctest
 julia> collectPlm(0.5, lmax = 5, m = 3)
@@ -154,6 +154,8 @@ NaN
 julia> dnPl(big(1)/2, 300, 200) # BigFloat
 1.738632750542319394663553898425873258768856732308227932150592526951212145232716e+499
 ```
+
+In general, one would need to use higher precision for both the argument `x` and the degree `l` to obtain accurate results.
 
 # Reference
 

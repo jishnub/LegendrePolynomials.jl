@@ -53,7 +53,7 @@ julia> collectPl(0.5, lmax = 5)
   0.08984375
 ```
 
-To compute all the associated Legendre polynomials for `0 <= l <= lmax`, use `collectPlm(x; m, lmax)`
+To compute all the associated Legendre polynomials for `abs(m) <= l <= lmax`, use `collectPlm(x; m, lmax)`
 
 ```julia
 julia> collectPlm(0.5, lmax = 5, m = 3)
