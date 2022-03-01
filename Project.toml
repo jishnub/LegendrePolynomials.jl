@@ -1,6 +1,6 @@
 name = "LegendrePolynomials"
 uuid = "3db4a2ba-fc88-11e8-3e01-49c72059a882"
-version = "0.3.4"
+version = "0.3.5"
 
 [deps]
 OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
