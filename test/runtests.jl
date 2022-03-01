@@ -100,6 +100,12 @@ end
         @test Pl(big(x), big(l)) ≈ expval rtol=1e-75
     end
 
+    @testset "parity" begin
+        for x in range(0, 1, length=10), l in 0:4
+            @test Pl(-x, l) ≈ (-1)^l * Pl(x, l) atol=1e-12 rtol=1e-8
+        end
+    end
+
     @test_throws DomainError collectPl(-2, lmax = lmax)
     @test_throws ArgumentError collectPl(0, lmax = -1)
 
@@ -157,6 +163,11 @@ end
         pm2 = collectPlm(x, lmax = 3, m = -2)
         @test Plm(x, 2, -2) ≈ pm2[2] ≈ 3/32
         @test Plm(x, 3, -2) ≈ pm2[3] ≈ 3/64
+    end
+    @testset "parity" begin
+        for x in range(0, 1, length=10), l in 0:4, m in -l:l
+            @test Plm(-x, l, m) ≈ (-1)^(l+m) * Plm(x, l, m) atol=1e-12 rtol=1e-8
+        end
     end
     @test_throws ArgumentError Plm(0.5, 3, 10)
     @test_throws ArgumentError Plm(0.5, -1, 3)
