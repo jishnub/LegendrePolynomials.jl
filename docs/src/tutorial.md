@@ -9,7 +9,9 @@ One may specify the normalization through the keyword argument `norm`.
 The normalization options accepted are
 
 * `norm = Val(:standard)`: standard, unnormalized polynomials. This is the default option.
-* `norm = Val(:normalized)`: fully normalized polynomials with an L2 norm of 1
+* `norm = Val(:normalized)`: fully normalized polynomials, with an L2 norm of 1
+* `norm = Val(:schmidtquasi)`: Schmidt quasi-normalized polynomials, also known as Schmidt semi-normalized polynomials. These have an L2 norm of ``\sqrt{2(2-\delta_{m0})/(2\ell+1)}``.
+* `norm = Val(:schmidt)`: Schmidt normalized polynomials. These have an L2 norm of ``\sqrt{2(2-\delta_{m0})}``.
 
 !!! note
 	Irrespective of the norm specified, the 3-term recursion relations used are stable ones,

@@ -200,25 +200,31 @@ function Base.iterate(iter::LegendrePolynomialIterator{T,<:Integer}, state) wher
     return Pl, (l+1, nextstate)
 end
 
-maybenormalize(P, l, ::Val{:normalized}) = oftype(P, P * √(l+1/2))
-maybenormalize(P, l, ::Val{:standard}) = P
-maybenormalize(P, l, norm) = throw(ArgumentError("norm = $norm undefined, valid norms are Val(:standard) and Val(:normalized)"))
+throw_normerr(norm) =
+    throw(ArgumentError("norm = $norm undefined,"*
+        " valid norms are Val(:standard), Val(:normalized), Val(:schmidtquasi) or Val(:schmidt)"))
 
-function maybenormalize(P, l, m, norm::Val{:normalized}, csphase = true)
+maybenormalize(P, l, ::Val{:normalized}) = oftype(P, P * √(l+1/2))
+maybenormalize(P, l, ::Union{Val{:standard}, Val{:schmidtquasi}}) = P
+maybenormalize(P, l, ::Val{:schmidt}) = oftype(P, P * √(2l+1))
+maybenormalize(P, l, norm) = throw_normerr(norm)
+
+plm_norm(::Val{:normalized}, lm...) = 1.0
+plm_norm(::Val{:standard}, lm...) = plm_norm(lm...)
+plm_norm(::Val{:schmidtquasi}, l, m) = √(2*(2 - iszero(m))/(2l + 1))
+function plm_norm(::Val{:schmidt}, l, m)
+    two = first(promote(2, l, m))
+    √(two*(two - iszero(m)))
+end
+plm_norm(norm, args...) = throw_normerr(norm)
+
+function maybenormalize(P, l, m, norm, csphase = true)
     if m == 0
         return maybenormalize(P, l, norm)
     else
-        return P
+        return (m < 0 ? neg1pow(m) : 1) * plm_norm(norm, l, m) * P
     end
 end
-function maybenormalize(P, l, m, norm::Val{:standard}, csphase = true)
-    if m == 0
-        return maybenormalize(P, l, norm)
-    else
-        return (m < 0 ? neg1pow(m) : 1) * plm_norm(l, m) * P
-    end
-end
-maybenormalize(P, l, m, norm, args...) = throw(ArgumentError("norm = $norm undefined, valid norms are Val(:standard) and Val(:normalized)"))
 
 """
     Pl(x, l::Integer; [norm = Val(:standard)])
@@ -268,8 +274,10 @@ For `m == 0` this function returns Legendre polynomials.
 
 # Optional keyword arguments
 * `norm`: The normalization used in the function. Possible
-    options are `Val(:standard)` (default) and `Val(:normalized)`.
-    The functions obtained with `norm = Val(:normalized)` have an L2 norm of ``1``.
+    options are `Val(:standard)` (default), `Val(:normalized)`, `Val(:schmidtquasi)` or `Val(:schmidt)`.
+    * The functions obtained with `norm = Val(:normalized)` have an L2 norm of ``1``.
+    * The functions obtained with `norm = Val(:schmidtquasi)` have an L2 norm of ``\\sqrt{\\frac{2(2-\\delta_{m0})}{2l+1}}``.
+    * The functions obtained with `norm = Val(:schmidt)` have an L2 norm of ``\\sqrt{2(2-\\delta_{m0})}``.
 * `csphase::Bool`: The Condon-shortley phase ``(-1)^m``, which is included by default.
 
 # Examples
@@ -474,8 +482,10 @@ Returns `v` with indices `lmin:lmax`, with `v[l] == Plm(x, l, m; kwargs...)`.
 
 # Optional keyword arguments
 * `norm`: The normalization used in the function. Possible
-    options are `Val(:standard)` (default) and `Val(:normalized)`.
-    The functions obtained with `norm = Val(:normalized)` have an L2 norm of ``1``.
+    options are `Val(:standard)` (default), `Val(:normalized)`, `Val(:schmidtquasi)` or `Val(:schmidt)`.
+    * The functions obtained with `norm = Val(:normalized)` have an L2 norm of ``1``.
+    * The functions obtained with `norm = Val(:schmidtquasi)` have an L2 norm of ``\\sqrt{\\frac{2(2-\\delta_{m0})}{2l+1}}``.
+    * The functions obtained with `norm = Val(:schmidt)` have an L2 norm of ``\\sqrt{2(2-\\delta_{m0})}``.
 * `csphase::Bool`: The Condon-shortley phase ``(-1)^m``, which is included by default.
 * `Tnorm`: Type of the normalization factor, which is dynamicall inferred by default,
     and is used in allocating an appropriate container.
@@ -525,8 +535,10 @@ At output, `v[l + firstindex(v)] == Plm(x, l, m; kwargs...)` for `l = lmin:lmax`
 
 # Optional keyword arguments
 * `norm`: The normalization used in the function. Possible
-    options are `Val(:standard)` (default) and `Val(:normalized)`.
-    The functions obtained with `norm = Val(:normalized)` have an L2 norm of ``1``.
+    options are `Val(:standard)` (default), `Val(:normalized)`, `Val(:schmidtquasi)` or `Val(:schmidt)`.
+    * The functions obtained with `norm = Val(:normalized)` have an L2 norm of ``1``.
+    * The functions obtained with `norm = Val(:schmidtquasi)` have an L2 norm of ``\\sqrt{\\frac{2(2-\\delta_{m0})}{2l+1}}``.
+    * The functions obtained with `norm = Val(:schmidt)` have an L2 norm of ``\\sqrt{2(2-\\delta_{m0})}``.
 * `csphase::Bool`: The Condon-shortley phase ``(-1)^m``, which is included by default.
 
 # Examples
