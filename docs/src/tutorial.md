@@ -48,7 +48,7 @@ julia> Plm(0.5, 3, 3)
 julia> Plm(0.5, 3, 3, csphase = false)
 9.742785792574933
 
-julia> all(Plm(0.5, 3, m, csphase = false) ≈ (-1)^m * Plm(0.5, 3, m) for m in 0:3)
+julia> all(Plm(0.5, 3, m, csphase = false) ≈ (-1)^m * Plm(0.5, 3, m) for m in -3:3)
 true
 ```
 
