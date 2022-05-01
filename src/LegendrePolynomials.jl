@@ -215,7 +215,7 @@ function maybenormalize(P, l, m, norm::Val{:standard}, csphase = true)
     if m == 0
         return maybenormalize(P, l, norm)
     else
-        return (m < 0 && csphase ? neg1pow(m) : 1) * plm_norm(l, m) * P
+        return (m < 0 ? neg1pow(m) : 1) * plm_norm(l, m) * P
     end
 end
 maybenormalize(P, l, m, norm, args...) = throw(ArgumentError("norm = $norm undefined, valid norms are Val(:standard) and Val(:normalized)"))

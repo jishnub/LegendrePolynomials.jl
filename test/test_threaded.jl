@@ -133,6 +133,7 @@ end
         p1 = Plm(0.5, 2, 2)
         p2 = Plm(0.5, 2, 2, csphase = false)
         @test p1 ≈ p2
+        @test all(Plm(0.5, 3, m, csphase = false) ≈ (-1)^m * Plm(0.5, 3, m) for m in -3:3)
     end
     @testset "avoid overflow" begin
         l = 200
