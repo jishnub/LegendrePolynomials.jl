@@ -2,7 +2,9 @@
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 HyperDualNumbers = "50ceba7f-c3ee-5a84-a6e8-3ad40456ec97"
 LegendrePolynomials = "3db4a2ba-fc88-11e8-3e01-49c72059a882"
+Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
 [compat]
 Documenter = "0.27"
 HyperDualNumbers = "4"
+Symbolics = "4"
