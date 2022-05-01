@@ -4,6 +4,7 @@ using OffsetArrays
 using HyperDualNumbers
 using QuadGK
 using Symbolics
+using LinearAlgebra
 
 tohyper(x) = Hyper(x, one(x), one(x), zero(x))
 
@@ -329,8 +330,14 @@ end
     end
 
     @testset "Matrix" begin
-        A = reshape([1:4;], 2, 2)
+        A = reshape([0.1:0.1:0.4;], 2, 2)
         @test Pl(A, 1) == A
-        @test Pl(A, 2) == (3A^2 - one(A))/2
+        @test Pl(A, 2) ≈ (3A^2 - one(A))/2
+        @test Plm(A, 2, 1) ≈ -3A*√(I - A^2)
+
+        D = Diagonal([1.0, 0.5])
+        @test Pl(D, 1) == D
+        @test Pl(D, 2) ≈ (3D^2 - one(D))/2
+        @test Plm(D, 2, 1) ≈ -3D*√(I - D^2)
     end
 end

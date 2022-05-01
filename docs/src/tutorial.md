@@ -117,3 +117,21 @@ In general, one would need to use higher precision for both the argument `x` and
 julia> Plm(big(1)/2, big(3000), 3000)
 2.05451584347939475644802290993338963448971107938391335496027846832433343889916e+9844
 ```
+
+## Symbolic evaluation
+
+It's possible to symbolically evaluate Legendre or associated Legendre polynomials using [`Symbolics.jl`](https://github.com/JuliaSymbolics/Symbolics.jl). An exmaple is:
+
+```jldoctest
+julia> using Symbolics
+
+julia> @variables x;
+
+julia> Pl(x, 3)
+(5//3)*x*((3//2)*(x^2) - (1//2)) - (2//3)*x
+
+julia> myf = eval(build_function(Pl(x, 3), [x]));
+
+julia> myf(0.4) == Pl(0.4, 3)
+true
+```

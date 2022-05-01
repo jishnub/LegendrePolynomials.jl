@@ -176,13 +176,13 @@ function Base.iterate(iter::LegendrePolynomialIterator{T,<:Integer}) where {T}
     m = iter.m
     x = iter.x
     if m == 0
-        Pl = one(T)
+        Pl = convert(T, one(x))
     else
         f = pll_prefactor(m, csphase = iter.csphase)
         t = f * (√(one(x) - x^2))^m
         Pl = convert(T, t)
     end
-    Plm1 = zero(T)
+    Plm1 = convert(T, zero(x))
     α_ℓ_m = Inf
     return Pl, (m+1, (Pl, Plm1, α_ℓ_m))
 end
