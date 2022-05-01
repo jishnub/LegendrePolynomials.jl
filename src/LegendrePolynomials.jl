@@ -127,7 +127,6 @@ end
 polytype(x) = typeof(float.(x))
 polytype(x::Array{<:Number}) = Array{promote_type(eltype(x), Float64), ndims(x)}
 polytype(x::Number) = float(typeof(x))
-polytype(m::Nothing) = Float64
 polytype(x::Number, m::Number) = promote_type(polytype(x), polytype(m))
 polytype(x, m::Number) = typeof(float.(x) .* m)
 polytype(x::Array{<:Number}, m::Number) = Array{promote_type(eltype(x), Float64, typeof(m)), ndims(x)}
