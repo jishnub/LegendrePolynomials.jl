@@ -3,6 +3,7 @@ using LegendrePolynomials
 using OffsetArrays
 using HyperDualNumbers
 using QuadGK
+using Symbolics
 
 tohyper(x) = Hyper(x, one(x), one(x), zero(x))
 
@@ -313,5 +314,23 @@ end
             I, E = quadgk(f, -1, 1, rtol=1e-2)
             @test I ≈ (2/(2l+1)*factorial(l+m)/factorial(l-m)) rtol=1e-2 atol=E
         end
+    end
+end
+
+@testset "custom types" begin
+    @testset "Symbolics" begin
+        @variables x
+        f_expr = build_function(Pl(x, 3), [x])
+        myf = eval(f_expr)
+        @test myf(0.4) ≈ Pl(0.4, 3)
+        f_expr = build_function(Plm(x, 3, 2), [x])
+        myf2 = eval(f_expr)
+        @test myf2(0.4) ≈ Plm(0.4, 3, 2)
+    end
+
+    @testset "Matrix" begin
+        A = reshape([1:4;], 2, 2)
+        @test Pl(A, 1) == A
+        @test Pl(A, 2) == (3A^2 - one(A))/2
     end
 end

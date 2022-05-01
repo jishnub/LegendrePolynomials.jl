@@ -28,9 +28,14 @@ function __init__()
     end
 end
 
-function checkdomain(x)
-    abs(x) > 1 && throw(DomainError(x,
+checkdomain(x) = true
+function checkdomain(x::Number)
+    f = abs(x) > 1
+    if f isa Bool
+        f && throw(DomainError(x,
         "Legendre Polynomials are defined for arguments lying in -1 ⩽ x ⩽ 1"))
+    end
+    return nothing
 end
 
 assertnonnegative(l::Integer) = l >= 0 || throw(ArgumentError("l must be >= 0, received " * string(l)))
@@ -119,9 +124,14 @@ function coeff(l, m, T = float(promote_type(typeof(l), typeof(m))))
     √((2T(l) - 1)/((T(l)-m)*(T(l)+m))*(2T(l)+1))
 end
 
-polytype(x) = float(typeof(x))
+polytype(x) = typeof(float.(x))
+polytype(x::Array{<:Number}) = Array{promote_type(eltype(x), Float64), ndims(x)}
+polytype(x::Number) = float(typeof(x))
 polytype(m::Nothing) = Float64
-polytype(x, m) = promote_type(polytype(x), polytype(m))
+polytype(x::Number, m::Number) = promote_type(polytype(x), polytype(m))
+polytype(x, m::Number) = typeof(float.(x) .* m)
+polytype(x::Array{<:Number}, m::Number) = Array{promote_type(eltype(x), Float64, typeof(m)), ndims(x)}
+polytype(x, ::Nothing) = polytype(x)
 
 struct LegendrePolynomialIterator{T, M<:Union{Integer, Nothing}, V}
     x :: V
@@ -145,8 +155,8 @@ Base.IteratorSize(::Type{<:LegendrePolynomialIterator}) = Base.IsInfinite()
 # Iteration for Legendre polynomials
 # starting value, l == 0 for m == 0
 function Base.iterate(iter::LegendrePolynomialIterator{T,Nothing}) where {T}
-    Pl = one(T)
-    Plm1 = zero(T)
+    Pl = convert(T, one(iter.x))
+    Plm1 = convert(T, zero(iter.x))
     nextstate = (Pl, Plm1, nothing)
     return Pl, (1, nextstate)
 end
@@ -169,7 +179,7 @@ function Base.iterate(iter::LegendrePolynomialIterator{T,<:Integer}) where {T}
         Pl = one(T)
     else
         f = pll_prefactor(m, csphase = iter.csphase)
-        t = f * (√(1-x^2))^m
+        t = f * (√(one(x) - x^2))^m
         Pl = convert(T, t)
     end
     Plm1 = zero(T)

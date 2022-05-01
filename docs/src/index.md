@@ -48,9 +48,9 @@ P_{\ell}^{m}\left(x\right)=\sqrt{\frac{2\left(\ell+m\right)!}{\left(2\ell+1\righ
 
 There are six main functions:
 
-* [`Pl(x,l; [norm])`](@ref Pl): this evaluates the Legendre polynomial for a given degree `l` at the argument `x`. The argument needs to satisfy `-1 <= x <= 1`.
+* [`Pl(x,l; [norm = Val(:standard)])`](@ref Pl): this evaluates the Legendre polynomial for a given degree `l` at the argument `x`. The argument needs to satisfy `-1 <= x <= 1`.
 * [`collectPl(x; lmax, [lmin = 0], [norm = Val(:standard)])`](@ref collectPl): this evaluates all the polynomials for `l` lying in `0:lmax` at the argument `x`. As before the argument needs to lie in the domain of validity. Functionally this is equivalent to `Pl.(x, lmin:lmax)`, except `collectPl` evaluates the result in one pass, and is therefore faster. There is also the in-place version [`collectPl!`](@ref) that uses a pre-allocated array.
-* [`Plm(x, l, m; [norm])`](@ref Plm): this evaluates the associated Legendre polynomial ``P_\ell^m(x)`` at the argument ``x``. The argument needs to satisfy `-1 <= x <= 1`.
+* [`Plm(x, l, m; [norm = Val(:standard)])`](@ref Plm): this evaluates the associated Legendre polynomial ``P_\ell^m(x)`` at the argument ``x``. The argument needs to satisfy `-1 <= x <= 1`.
 * [`collectPlm(x; m, lmax, [lmin = abs(m)], [norm = Val(:standard)])`](@ref collectPlm): this evaluates the associated Legendre polynomials with coefficient `m` for `l = lmin:lmax`. There is also an in-place version [`collectPlm!`](@ref) that uses a pre-allocated array.
 * [`dnPl(x, l, n)`](@ref dnPl): this evaluates the ``n``-th derivative of the Legendre polynomial ``P_\ell(x)`` at the argument ``x``. The argument needs to satisfy `-1 <= x <= 1`.
 * [`collectdnPl(x; n, lmax)`](@ref collectdnPl): this evaluates the ``n``-th derivative of all the Legendre polynomials for `l = 0:lmax`. There is also an in-place version [`collectdnPl!`](@ref) that uses a pre-allocated array.
