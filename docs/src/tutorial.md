@@ -4,16 +4,7 @@ DocTestSetup = :(using LegendrePolynomials)
 
 ## Computing normalized Legendre polynomials
 
-By default, the Legendre and associated Legendre polynomials are not normalized.
-One may specify the normalization through the keyword argument `norm`.
-The normalization options accepted are
-
-* `norm = Val(:standard)`: standard, unnormalized polynomials. This is the default option.
-* `norm = Val(:normalized)`: fully normalized polynomials with an L2 norm of 1
-
-!!! note
-	Irrespective of the norm specified, the 3-term recursion relations used are stable ones,
-	so polynomials of high degrees may be computed without overflow.
+The norm of the polynomials may be specified through the keyword argument `norm`. The various normalization options are listed in the [Normalization options](@ref) section.
 
 ```jldoctest
 julia> l = 3;
@@ -31,6 +22,16 @@ julia> l = m = 3000;
 
 julia> Plm(0.5, l, m, norm = Val(:normalized))
 2.172276347346834e-187
+```
+
+Starting from these, other normalization such as the [Ambix SN3D format](https://en.wikipedia.org/wiki/Ambisonic_data_exchange_formats#SN3D) may be constructed as
+
+```julia
+julia> Plmambix(x, l, m) = Plm(x, l, m, norm=Val(:schmidtquasi)) / √(4pi)
+Plmambix (generic function with 1 method)
+
+julia> Plmambix(0.5, 2, 1)
+-0.21157109383040862
 ```
 
 ## Condon-Shortley phase

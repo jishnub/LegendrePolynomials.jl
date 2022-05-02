@@ -19,38 +19,22 @@ tohyper(x) = Hyper(x, one(x), one(x), zero(x))
 end
 
 @testset "Pl and collectPl" begin
-	x = 2rand() - 1
+	x = 0.5
     lmax = 5
     lmin = max(0, lmax - 1)
 
-    @testset "standard norm" begin
-        P = @inferred collectPl(x, lmax = lmax)
-        T = Union{OffsetVector{Float64, Vector{Float64}}, OffsetVector{BigFloat, Vector{BigFloat}}}
-        P2 = @inferred T collectPlm(x, lmax = lmax, m = 0)
-        P3 = @inferred collectdnPl(x, lmax = lmax, n = 0)
-        @test P[0] ≈ P2[0] ≈ P3[0] ≈ 1
-        @test P[1] ≈ P2[1] ≈ P3[1] ≈ x
-        @test P[2] ≈ P2[2] ≈ P3[2] ≈ (3x^2 - 1)/2
-        @test P[3] ≈ P2[3] ≈ P3[3] ≈ (5x^3 - 3x)/2
-        @test P[4] ≈ P2[4] ≈ P3[4] ≈ (35x^4 - 30x^2 + 3)/8
-        @test P[5] ≈ P2[5] ≈ P3[5] ≈ (63x^5 - 70x^3 + 15x)/8
-
-        Q = @inferred collectPl(x, lmax = lmax, lmin = lmin, norm = Val(:standard))
-        Q2 = @inferred T collectPlm(x, lmax = lmax, lmin = lmin, m = 0, norm = Val(:standard))
-        @test Q ≈ Q2
-        @test @views Q[lmin:lmax] == P[lmin:lmax]
-    end
-
-    @testset "normalized" begin
-        P = @inferred collectPl(x, lmax = lmax, norm = Val(:normalized))
-        Q = @inferred collectPlm(x, lmax = lmax, m = 0, norm = Val(:normalized))
-        @test P ≈ Q
-        @test P[0] ≈ √(1/2)
-
-        P2 = @inferred collectPl(x, lmax = lmax, lmin = lmin, norm = Val(:normalized))
-        Q2 = @inferred collectPlm(x, lmax = lmax, lmin = lmin, m = 0, norm = Val(:normalized))
-        @test P2 ≈ Q2
-        @test @views P2[lmin:lmax] == P[lmin:lmax]
+    @testset "norm" begin
+        @testset "standard norm" begin
+            P = @inferred collectPl(x, lmax = lmax)
+            T = Union{OffsetVector{Float64, Vector{Float64}}, OffsetVector{BigFloat, Vector{BigFloat}}}
+            P3 = @inferred collectdnPl(x, lmax = lmax, n = 0)
+            @test P[0] ≈ P3[0] ≈ 1
+            @test P[1] ≈ P3[1] ≈ x
+            @test P[2] ≈ P3[2] ≈ (3x^2 - 1)/2
+            @test P[3] ≈ P3[3] ≈ (5x^3 - 3x)/2
+            @test P[4] ≈ P3[4] ≈ (35x^4 - 30x^2 + 3)/8
+            @test P[5] ≈ P3[5] ≈ (63x^5 - 70x^3 + 15x)/8
+        end
     end
 
     @testset "x = 0" begin
@@ -107,7 +91,11 @@ end
     @test_throws ArgumentError collectPl(0, lmax=1, norm = Val(:undefined))
 end
 
-@testset "Plm" begin
+@testset "Plm and collectPlm" begin
+    x = 0.5
+    lmax = 5
+    lmin = max(0, lmax - 1)
+
     @testset "double factorial" begin
         @test Plm(0.5, 2, 2) ≈ 9/4
         @test Plm(0.5, 3, 3) ≈ -45/8*sqrt(3)
@@ -115,6 +103,64 @@ end
         @test Plm(0.5, 10, 0) ≈ -49343/262144
         @test Plm(0.5, 10, 6) ≈ -674999325/8192
         @test Plm(0.5, 10, 10) ≈ 159099165225/1024
+    end
+    @testset "norm" begin
+        @testset "standard norm" begin
+            P = @inferred collectPl(x, lmax = lmax)
+            T = Union{OffsetVector{Float64, Vector{Float64}}, OffsetVector{BigFloat, Vector{BigFloat}}}
+            P2 = @inferred T collectPlm(x, lmax = lmax, m = 0)
+            @test P ≈ P2
+
+            Q = @inferred collectPl(x, lmax = lmax, lmin = lmin, norm = Val(:standard))
+            Q2 = @inferred T collectPlm(x, lmax = lmax, lmin = lmin, m = 0, norm = Val(:standard))
+            @test Q ≈ Q2
+            @test @views Q[lmin:lmax] == P[lmin:lmax]
+        end
+
+        @testset "normalized" begin
+            P = @inferred collectPl(x, lmax = lmax, norm = Val(:normalized))
+            Q = @inferred collectPlm(x, lmax = lmax, m = 0, norm = Val(:normalized))
+            @test P ≈ Q
+            @test P[0] ≈ √(1/2)
+
+            P2 = @inferred collectPl(x, lmax = lmax, lmin = lmin, norm = Val(:normalized))
+            Q2 = @inferred collectPlm(x, lmax = lmax, lmin = lmin, m = 0, norm = Val(:normalized))
+            @test P2 ≈ Q2
+            @test @views P2[lmin:lmax] == P[lmin:lmax]
+
+            for m in 1:3
+                Q = @inferred collectPlm(x, lmax = lmax, m = m, norm = Val(:normalized))
+                @testset for l in m:lmax
+                    @test Q[l] ≈ √((2l+1)/2*(factorial(l-m)/factorial(l+m))) * Plm(x, l, m)
+                end
+            end
+        end
+
+        @testset "schmidtquasi" begin
+            P = @inferred collectPl(x, lmax = lmax, norm = Val(:schmidtquasi))
+            Q = @inferred collectPlm(x, lmax = lmax, m = 0, norm = Val(:schmidtquasi))
+            @test P ≈ Q
+
+            for m in 1:3
+                Q = @inferred collectPlm(x, lmax = lmax, m = m, norm = Val(:schmidtquasi))
+                @testset for l in m:lmax
+                    @test Q[l] ≈ √(2*(factorial(l-m)/factorial(l+m))) * Plm(x, l, m)
+                end
+            end
+        end
+
+        @testset "schmidt" begin
+            P = @inferred collectPl(x, lmax = lmax, norm = Val(:schmidt))
+            Q = @inferred collectPlm(x, lmax = lmax, m = 0, norm = Val(:schmidt))
+            @test P ≈ Q
+
+            for m in 1:3
+                Q = @inferred collectPlm(x, lmax = lmax, m = m, norm = Val(:schmidt))
+                @testset for l in m:lmax
+                    @test Q[l] ≈ √(2*(2l+1)*(factorial(l-m)/factorial(l+m))) * Plm(x, l, m)
+                end
+            end
+        end
     end
     @testset "non-standard integers" begin
         l = 2
@@ -133,7 +179,10 @@ end
         p1 = Plm(0.5, 2, 2)
         p2 = Plm(0.5, 2, 2, csphase = false)
         @test p1 ≈ p2
-        @test all(Plm(0.5, 3, m, csphase = false) ≈ (-1)^m * Plm(0.5, 3, m) for m in -3:3)
+        for norm in [:standard, :normalized, :schmidtquasi]
+            @test all(Plm(0.5, 3, m, csphase = false, norm = Val(norm)) ≈
+                    (-1)^m * Plm(0.5, 3, m, norm = Val(norm)) for m in -3:3)
+        end
     end
     @testset "avoid overflow" begin
         l = 200
@@ -297,24 +346,69 @@ end
 
 @testset "norm" begin
     @testset "Pl" begin
-        for l in 0:4
-            f = x -> Pl(x, l, norm = Val(:normalized))^2
-            I, E = quadgk(f, -1, 1, rtol=1e-2)
-            @test I ≈ 1 rtol=1e-2 atol=E
+        @testset "normalized" begin
+            for l in 0:4
+                f = x -> Pl(x, l, norm = Val(:normalized))^2
+                I, E = quadgk(f, -1, 1, rtol=1e-2)
+                @test I ≈ 1 rtol=1e-2 atol=E
+            end
+        end
 
-            f = x -> Pl(x, l, norm = Val(:standard))^2
-            I, E = quadgk(f, -1, 1, rtol=1e-2)
-            @test I ≈ 2/(2l+1) rtol=1e-2 atol=E
+        @testset "standard" begin
+            for l in 0:4
+                f = x -> Pl(x, l, norm = Val(:standard))^2
+                I, E = quadgk(f, -1, 1, rtol=1e-2)
+                @test I ≈ 2/(2l+1) rtol=1e-2 atol=E
+            end
+        end
+
+        @testset "schmidtquasi" begin
+            for l in 0:4
+                f = x -> Pl(x, l, norm = Val(:schmidtquasi))^2
+                I, E = quadgk(f, -1, 1, rtol=1e-2)
+                @test I ≈ 2/(2l+1) rtol=1e-2 atol=E
+            end
+        end
+
+        @testset "schmidt" begin
+            for l in 0:4
+                f = x -> Pl(x, l, norm = Val(:schmidt))^2
+                I, E = quadgk(f, -1, 1, rtol=1e-2)
+                @test I ≈ 2 rtol=1e-2 atol=E
+            end
         end
     end
     @testset "Plm" begin
-        for m in -4:4, l in abs(m):4
-            f = x -> Plm(x, l, m, norm = Val(:normalized))^2
-            I, E = quadgk(f, -1, 1, rtol=1e-2)
-            @test I ≈ 1 rtol=1e-2 atol=E
-            f = x -> Plm(x, l, m, norm = Val(:standard))^2
-            I, E = quadgk(f, -1, 1, rtol=1e-2)
-            @test I ≈ (2/(2l+1)*factorial(l+m)/factorial(l-m)) rtol=1e-2 atol=E
+        @testset "normalized" begin
+            @testset for m in -4:4, l in abs(m):4
+                f = x -> Plm(x, l, m, norm = Val(:normalized))^2
+                I, E = quadgk(f, -1, 1, rtol=1e-2)
+                @test I ≈ 1 rtol=1e-2 atol=E
+            end
+        end
+
+        @testset "schmidtquasi" begin
+            @testset for m in -4:4, l in abs(m):4
+                f = x -> Plm(x, l, m, norm = Val(:schmidtquasi))^2
+                I, E = quadgk(f, -1, 1, rtol=1e-2)
+                @test I ≈ 2*(2 - (m==0))/(2l + 1) rtol=1e-2 atol=E
+            end
+        end
+
+        @testset "schmidt" begin
+            @testset for m in -4:4, l in abs(m):4
+                f = x -> Plm(x, l, m, norm = Val(:schmidt))^2
+                I, E = quadgk(f, -1, 1, rtol=1e-2)
+                @test I ≈ 2*(2 - (m==0)) rtol=1e-2 atol=E
+            end
+        end
+
+        @testset "standard" begin
+            for m in -4:4, l in abs(m):4
+                f = x -> Plm(x, l, m, norm = Val(:standard))^2
+                I, E = quadgk(f, -1, 1, rtol=1e-2)
+                @test I ≈ (2/(2l+1)*factorial(l+m)/factorial(l-m)) rtol=1e-2 atol=E
+            end
         end
     end
 end
