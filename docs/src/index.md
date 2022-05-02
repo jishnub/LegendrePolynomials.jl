@@ -9,7 +9,7 @@ end
 
 ### Legendre polynomials
 
-Legendre polynomials satisfy the differential equation
+[Legendre polynomials](https://en.wikipedia.org/wiki/Legendre_polynomials) satisfy the differential equation
 
 ```math
 \frac{d}{dx}\left(\left(1-x^{2}\right)\frac{d}{dx}\right)P_{\ell}\left(x\right)=-\ell\left(\ell+1\right)P_{\ell}\left(x\right)
@@ -23,7 +23,7 @@ By default this package evaluates the standard polynomials that satisfy ``P_\ell
 
 ### Associated Legendre polynomials
 
-Associated Legendre polynomials satisfy the differential equation
+[Associated Legendre polynomials](https://en.wikipedia.org/wiki/Associated_Legendre_polynomials) satisfy the differential equation
 
 ```math
 \left[\frac{d}{dx}\left(\left(1-x^{2}\right)\frac{d}{dx}\right)-\frac{m^{2}}{1-x^{2}}\right]P_{\ell}^{m}\left(x\right)=-\ell\left(\ell+1\right)P_{\ell}^{m}\left(x\right),
