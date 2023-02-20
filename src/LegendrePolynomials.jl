@@ -13,21 +13,6 @@ export dnPl
 export collectdnPl
 export collectdnPl!
 
-# cache values of logfactorial to avoid expensive calls
-const lfdictInt = Vector{Dict{Int, Float64}}()
-const lfdictBigInt = Vector{Dict{BigInt, BigFloat}}()
-
-function __init__()
-    empty!(lfdictInt)
-    empty!(lfdictBigInt)
-    resize!(lfdictInt, Threads.nthreads())
-    resize!(lfdictBigInt, Threads.nthreads())
-    for i in 1:Threads.nthreads()
-        lfdictInt[i] = Dict{Int, Float64}()
-        lfdictBigInt[i] = Dict{BigInt, BigFloat}()
-    end
-end
-
 checkdomain(x) = true
 function checkdomain(x::Number)
     f = abs(x) > 1
@@ -84,18 +69,9 @@ end
     convert(T, P_n_l)
 end
 
-# Allow memoization
-_logfactorial(n) = logfactorial(n)
-_logfactorial(n::Int) = get!(lfdictInt[Threads.threadid()], n) do
-                            logfactorial(n)
-                        end
-_logfactorial(n::BigInt) = get!(lfdictBigInt[Threads.threadid()], n) do
-                            logfactorial(n)
-                        end
-
 function logplm_norm(l, m)
     T = promote_type(typeof(l), typeof(m))
-    (log(T(2)) - log(2T(l)+1) + _logfactorial(l + m) - _logfactorial(l - m))/2
+    (log(T(2)) - log(2T(l)+1) + logfactorial(l + m) - logfactorial(l - m))/2
 end
 function _maybebigexp(t)
     if t < log(prevfloat(typemax(t)))
@@ -111,12 +87,12 @@ end
 function logabspll_prefactor(l, T = typeof(l))
     lT = T(l)
     a = (logfactorial(2lT-1) + log(2lT+1) - log(lT))/2
-    b = l*log(T(2)) + _logfactorial(lT-1)
+    b = l*log(T(2)) + logfactorial(lT-1)
     a - b
 end
 neg1pow(l) = iseven(l) ? 1 : -1
 function pll_prefactor(l, T = typeof(l); csphase::Bool = true)
-    l == 0 && return sqrt(oftype(_logfactorial(T(l)), 1/2))
+    l == 0 && return sqrt(oftype(logfactorial(T(l)), 1/2))
     t = logabspll_prefactor(l, T)
     (csphase ? neg1pow(l) : 1) * exp(t)
 end
