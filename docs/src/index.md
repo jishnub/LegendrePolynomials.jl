@@ -1,7 +1,7 @@
 ```@meta
 CurrentModule = LegendrePolynomials
 DocTestSetup = quote
-	using LegendrePolynomials
+    using LegendrePolynomials
 end
 ```
 
@@ -92,7 +92,7 @@ julia> collectPlm(0.5, lmax = 5, m = 3)
 3-element OffsetArray(::Vector{Float64}, 3:5) with eltype Float64 with indices 3:5:
   -9.742785792574933
  -34.09975027401223
- -42.62468784251535
+ -42.624687842515385
 ```
 
 Evaluate all the `n`th derivatives of `Pl` as `collectdnPl(x; lmax, n)`:

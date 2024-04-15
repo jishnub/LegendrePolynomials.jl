@@ -21,7 +21,7 @@ true
 julia> l = m = 3000;
 
 julia> Plm(0.5, l, m, norm = Val(:normalized))
-2.172276347346834e-187
+2.1722763473468343e-187
 ```
 
 Starting from these, other normalization such as the [Ambix SN3D format](https://en.wikipedia.org/wiki/Ambisonic_data_exchange_formats#SN3D) may be constructed as
@@ -129,7 +129,7 @@ julia> using Symbolics
 julia> @variables x;
 
 julia> Pl(x, 3)
-(5//3)*x*((3//2)*(x^2) - (1//2)) - (2//3)*x
+(1//3)*(-2x + (5//2)*x*(-1 + 3(x^2)))
 
 julia> myf = eval(build_function(Pl(x, 3), [x]));
 

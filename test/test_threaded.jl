@@ -5,6 +5,7 @@ using HyperDualNumbers
 using QuadGK
 using Symbolics
 using LinearAlgebra
+using Documenter
 
 tohyper(x) = Hyper(x, one(x), one(x), zero(x))
 
@@ -435,4 +436,14 @@ end
         @test Pl(D, 2) ≈ (3D^2 - one(D))/2
         @test Plm(D, 2, 1) ≈ -3D*√(I - D^2)
     end
+end
+
+@testset "doctests" begin
+    DocMeta.setdocmeta!(
+        LegendrePolynomials,
+        :DocTestSetup,
+        :(using LegendrePolynomials);
+        recursive = true
+    )
+    doctest(LegendrePolynomials)
 end
