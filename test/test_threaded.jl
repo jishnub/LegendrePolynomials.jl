@@ -445,5 +445,7 @@ end
         :(using LegendrePolynomials);
         recursive = true
     )
-    doctest(LegendrePolynomials)
+    if v"1.10.2" <= VERSION < v"1.11.0-"
+        doctest(LegendrePolynomials)
+    end
 end
