@@ -232,7 +232,7 @@ function Pl(x, l::Integer; norm = Val(:standard))
     return maybenormalize(Pl, l, norm)
 end
 
-function doublefactorial(T, n)
+@inline function doublefactorial(::Type{T}, n) where T
     p = convert(T, one(n))
     for i in n:-2:1
         p *= convert(T, i)
