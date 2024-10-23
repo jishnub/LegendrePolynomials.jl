@@ -5,6 +5,7 @@ using HyperDualNumbers
 using QuadGK
 using Symbolics
 using LinearAlgebra
+using Documenter
 
 tohyper(x) = Hyper(x, one(x), one(x), zero(x))
 
@@ -19,7 +20,7 @@ tohyper(x) = Hyper(x, one(x), one(x), zero(x))
 end
 
 @testset "Pl and collectPl" begin
-	x = 0.5
+    x = 0.5
     lmax = 5
     lmin = max(0, lmax - 1)
 
@@ -434,5 +435,17 @@ end
         @test Pl(D, 1) == D
         @test Pl(D, 2) ≈ (3D^2 - one(D))/2
         @test Plm(D, 2, 1) ≈ -3D*√(I - D^2)
+    end
+end
+
+@testset "doctests" begin
+    DocMeta.setdocmeta!(
+        LegendrePolynomials,
+        :DocTestSetup,
+        :(using LegendrePolynomials);
+        recursive = true
+    )
+    if v"1.10.2" <= VERSION < v"1.11.0-"
+        doctest(LegendrePolynomials)
     end
 end
