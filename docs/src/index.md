@@ -58,8 +58,7 @@ true
 Evaluate the associated Legendre Polynomial one `l,m` pair as `Plm(x, l, m)`:
 
 ```jldoctest
-julia> p = Plm(0.5, 3, 2)
-5.624999999999997
+julia> p = Plm(0.5, 3, 2);
 
 julia> p ≈ 45/8 # analytical value
 true
@@ -88,11 +87,11 @@ Evaluate the associated Legendre Polynomials for order `m` and degree `l` in `lm
 as `collectPlm(x; m, lmin, lmax)`. By default `lmin` is chosen to be `abs(m)`, and may be omitted.
 
 ```jldoctest
-julia> collectPlm(0.5, lmax = 5, m = 3)
+julia> collectPlm(0, lmax = 5, m = 3)
 3-element OffsetArray(::Vector{Float64}, 3:5) with eltype Float64 with indices 3:5:
-  -9.742785792574933
- -34.09975027401223
- -42.624687842515385
+ -15.000000000000002
+  -0.0
+  52.500000000000064
 ```
 
 Evaluate all the `n`th derivatives of `Pl` as `collectdnPl(x; lmax, n)`:
