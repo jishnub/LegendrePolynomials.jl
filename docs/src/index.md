@@ -58,8 +58,7 @@ true
 Evaluate the associated Legendre Polynomial one `l,m` pair as `Plm(x, l, m)`:
 
 ```jldoctest
-julia> p = Plm(0.5, 3, 2)
-5.624999999999997
+julia> p = Plm(0.5, 3, 2);
 
 julia> p ≈ 45/8 # analytical value
 true
