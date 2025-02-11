@@ -159,17 +159,17 @@ The normalization options accepted are
 
 * `norm = Val(:standard)`: standard, unnormalized polynomials. This is the default option. Choosing this option will lead to the standard Legendre or associated Legendre polynomials that satisfy ``P_\ell(0)=1`` and ``P_{\ell0}(0)=1``
 * `norm = Val(:normalized)`: fully normalized polynomials, with an L2 norm of 1. These are defined as
-```math
+  ```math
   \bar{P}_{\ell m}\left(x\right)=\sqrt{\frac{2\ell+1}{2}\frac{\left(\ell-m\right)!}{\left(\ell+m\right)!}}P_{\ell m}\left(x\right)
-```
+  ```
 * `norm = Val(:schmidtquasi)`: Schmidt quasi-normalized polynomials, also known as Schmidt semi-normalized polynomials. These have an L2 norm of ``\sqrt{2(2-\delta_{m0})/(2\ell+1)}``. These are defined as
-```math
+  ```math
   \bar{P}_{\ell m}\left(x\right)=\sqrt{\left(2-\delta_{m0}\right)\frac{\left(\ell-m\right)!}{\left(\ell+m\right)!}}P_{\ell m}\left(x\right)
-```
+  ```
 * `norm = Val(:schmidt)`: Schmidt normalized polynomials. These have an L2 norm of ``\sqrt{2(2-\delta_{m0})}``. These are defined as
-```math
+  ```math
   \bar{P}_{\ell m}\left(x\right)=\sqrt{\left(2-\delta_{m0}\right)\left(2\ell+1\right)\frac{\left(\ell-m\right)!}{\left(\ell+m\right)!}}P_{\ell m}\left(x\right)
-```
+  ```
 
 !!! note
     Irrespective of the norm specified, the 3-term recursion relations used are stable ones,
